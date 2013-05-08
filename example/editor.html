@@ -1,0 +1,88 @@
+<html>
+<head>
+  <!-- <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script> -->
+  <script src="jquery.min.js"></script> 
+  <script src="coffee-script.js"></script>
+  <script src="stash.js"></script>
+  <script src="../lib/csss.coffee" type="text/coffeescript"></script>
+  <script src="editor.coffee" type="text/coffeescript"></script>
+  <style type="text/css">
+    body {
+      background: #eee;
+      color: #222;
+      font-family: 'Lucida', Arial;
+    }
+    textarea {
+      height: 94%;
+      border: 0px;
+      padding: 0.5%;
+      font-family: 'Menlo';
+      margin: 1%;
+      width: 30%;
+      color: #000;
+      -webkit-transition: width 0.2s;
+      box-shadow: 1px 1px 1px #ddd
+    }
+    textarea.collapsed {
+      width: 1em;
+      color: transparent;
+      overflow-x: hidden;
+      overflow-y: hidden; 
+    }
+    #error {
+      background: #ffa1a1;
+      border-radius: 2px;
+      color: #fff;
+      /*width: 20%;*/
+      position: fixed;
+      /*bottom: 0.2em;*/
+      padding: 0.5em 1em;
+      /*left: 40%;*/
+      opacity: 1;
+      -webkit-transition: opacity 0.5s;
+      right: 0;
+      bottom: 0px;
+      font-size: 0.8em;
+      width: 100%;
+      text-align: center;
+    }
+    #error.hidden {
+      opacity: 0;
+    }
+    #options {
+      position: fixed;
+      background: #999;
+      height: 100%;
+      top: 0;
+      right: 0;
+      font-size: 0.8em;
+      padding: 1em;
+      width: 200px;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+      color: #fff;
+      text-shadow: 1px 1px 0 #666;
+      z-index: 100;
+    }
+    #options * {
+      opacity: 1;
+    }
+    #options.collapsed {
+      width: 0px;
+    }
+    #options.collapsed * {
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+  <textarea id="in" placeholder="CSSS"></textarea>
+  <textarea id="transscript" placeholder="CoffeeScript"></textarea>
+  <textarea id="coffeescript" placeholder="Evaluated CoffeeScript"></textarea>
+  <div id="error" class="hidden"></div>
+  <div id="options">
+    <label for="ApplyOnDocument">apply on doc</label>
+    <input type="checkbox" id="ApplyOnDocument" />
+  </div>
+  <textarea id="out" placeholder="CSS"></textarea>
+</body>
+</html>
