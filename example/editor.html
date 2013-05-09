@@ -4,15 +4,20 @@
   <script src="jquery.min.js"></script> 
   <script src="coffee-script.js"></script>
   <script src="stash.js"></script>
+  <script src="cssbeautify.js"></script>
   <script src="../lib/csss.coffee" type="text/coffeescript"></script>
   <script src="editor.coffee" type="text/coffeescript"></script>
+  <!-- highlighter -->
+  <link rel="stylesheet" href="highlightjs/styles/tomorrow.css">
+  <script src="highlightjs/highlight.pack.js"></script>
+  <!-- /highlighter -->
   <style type="text/css">
     body {
       background: #eee;
       color: #222;
       font-family: 'Lucida', Arial;
     }
-    textarea {
+    textarea, .textarea {
       height: 94%;
       border: 0px;
       padding: 0.5%;
@@ -21,13 +26,17 @@
       width: 30%;
       color: #000;
       -webkit-transition: width 0.2s;
-      box-shadow: 1px 1px 1px #ddd
+      box-shadow: 1px 1px 1px #ddd;
+      float: left;
     }
-    textarea.collapsed {
+    .textarea.collapsed {
       width: 1em;
-      color: transparent;
+      background: #fff;
       overflow-x: hidden;
       overflow-y: hidden; 
+    }
+    .textarea.collapsed code {
+      display: none;
     }
     #error {
       background: #ffa1a1;
@@ -72,17 +81,37 @@
     #options.collapsed * {
       opacity: 0;
     }
+    .textarea {
+      padding: 0;
+      /*float: left;*/
+      height: 94%;
+    }
+    .textarea pre, .textarea pre code {
+      margin: 0;
+      height: 99%;
+    }
+    .textarea pre code {
+      font-family: 'Menlo';
+      font-size: 11px;
+      overflow: scroll;
+    }
   </style>
 </head>
 <body>
   <textarea id="in" placeholder="CSSS"></textarea>
-  <textarea id="transscript" placeholder="CoffeeScript"></textarea>
-  <textarea id="coffeescript" placeholder="Evaluated CoffeeScript"></textarea>
+  <div class="textarea" id="transscript"><pre><code></code></pre></div>
+  <div class="textarea" id="coffeescript"><pre><code></code></pre></div>
+  <div class="textarea" id="out"><pre><code></code></pre></div>
   <div id="error" class="hidden"></div>
   <div id="options">
+    <label for="SyntaxHighlighting">syntax highlighting</label>
+    <input type="checkbox" id="SyntaxHighlighting" />
+    <br />
+    <label for="SyntaxHighlighting">beautify css</label>
+    <input type="checkbox" id="BeautifyCSS" />
+    <br />
     <label for="ApplyOnDocument">apply on doc</label>
     <input type="checkbox" id="ApplyOnDocument" />
   </div>
-  <textarea id="out" placeholder="CSS"></textarea>
 </body>
 </html>

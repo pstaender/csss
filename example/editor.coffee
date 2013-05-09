@@ -62,9 +62,9 @@ tr.even
 $(document).ready ->
 
   $in     = $('#in')
-  $css    = $('#out')
-  $coffee = $('#coffeescript')
-  $trans  = $('#transscript')
+  $css    = $('#out pre code')
+  $coffee = $('#coffeescript pre code')
+  $trans  = $('#transscript pre code')
   $error  = $('#error')
 
   timestamp = -> Math.round( new Date().getTime() / 1000 )
@@ -74,6 +74,23 @@ $(document).ready ->
 
   lastUse = stash.get 'lastUse'
   lastUse ?= timestamp()
+
+  beautifyCSS = true
+  $('#BeautifyCSS').prop('checked', beautifyCSS)
+  $('#BeautifyCSS').on 'change', ->
+    beautifyCSS = $(this).prop('checked')
+    stash.set 'BeautifyCSS', beautifyCSS
+    # renew
+    parse(true)
+  
+  syntaxHighlighting = stash.get 'SyntaxHighlighting'
+  syntaxHighlighting ?= true
+  $('#SyntaxHighlighting').prop('checked', syntaxHighlighting)
+  $('#SyntaxHighlighting').on 'change', ->
+    syntaxHighlighting = $(this).prop('checked')
+    stash.set 'SyntaxHighlighting', syntaxHighlighting
+    # renew
+    parse(true)
 
   if ( timestamp() - lastUse ) > 3600
     # use default code
@@ -108,31 +125,50 @@ $(document).ready ->
       console.error e
       error.push(e)
 
-    $coffee.text csss.coffeescript
-    $trans.text csss.source
+    if syntaxHighlighting 
+      $trans.html hljs.highlight('coffeescript', csss.source).value
+    else
+      $trans.text csss.source
 
     try
       csss.eval()
-      $coffee.text csss.coffeescript || css.declarationPart + css.source
-      $css.text csss.css()
+      css = csss.css()
+      css = cssbeautify(css, indent: '  ') if beautifyCSS
+      if syntaxHighlighting
+        $css.html  hljs.highlight('css', css).value
+      else
+        $css.text(css)
+      coffeescript = csss.coffeescript || csss.declarationPart + csss.source
+      if syntaxHighlighting
+        $coffee.html hljs.highlight('coffeescript', coffeescript).value
+      else
+        $coffee.text(coffeescript)
     catch e
       error.push(new Error('Evaluating Error'))
+      $coffee.html('')
       console.error e
       error.push(e)
 
-    $css.text csss.css()
+    # $css.text csss.css()
+
     # store input
     stash.set('input', $in.val())
     if csss.error()
+      $coffee.html('') # no output if error
       error.push(csss.error())
       console.error(csss.error())
     displayError(error)
 
   parse(true)
 
-  # applyCssToDocument('body { background: #fff; }')
+  setInterval ->
+    parse()
+  , 1000
 
-  $collapsableContainer = $('textarea, #options')
+  # applyCssToDocument('body { background: #fff; }')
+  #cssbeautify(style, options);
+
+  $collapsableContainer = $('.textarea, #options')
 
   $collapsableContainer.each ->
     if stash.get $(this).attr('id')+'.collapsed'
@@ -144,9 +180,11 @@ $(document).ready ->
     $(this).toggleClass('collapsed')
     stash.set $(this).attr('id')+'.collapsed', (Boolean) $(this).hasClass('collapsed')
 
-  $in.on 'keyup', parse
+  $in.on 'keyup', (e) ->
+    key = e.keyCode
+    allowedKey = [ 13, 38, 40 ] #37 is <-
+    parse() if allowedKey.indexOf(key) isnt -1
 
-  # console.log css
 
   # $("head").append css
 

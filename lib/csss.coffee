@@ -91,6 +91,9 @@ class CSSS
     hasOperator: -> /\s[\+\-\/\*]{1}\s/g
     isNotParsableValue: /^([0-9]+(\.[0-9])*|\@*[a-zA-Z\_]+)$/ 
     doesLineBeginWithAttribute: null
+    cssColorValues: ->
+      #return /\s(\#[a-z0-9]{3,6})\s*/g
+      /\s(\#[a-z0-9]{3,6}|AliceBlue|AntiqueWhite|Aqua|Aquamarine|Azure|Beige|Bisque|Black|BlanchedAlmond|Blue|BlueViolet|Brown|BurlyWood|CadetBlue|Chartreuse|Chocolate|Coral|CornflowerBlue|Cornsilk|Crimson|Cyan|DarkBlue|DarkCyan|DarkGoldenRod|DarkGray|DarkGreen|DarkKhaki|DarkMagenta|DarkOliveGreen|Darkorange|DarkOrchid|DarkRed|DarkSalmon|DarkSeaGreen|DarkSlateBlue|DarkSlateGray|DarkTurquoise|DarkViolet|DeepPink|DeepSkyBlue|DimGray|DimGrey|DodgerBlue|FireBrick|FloralWhite|ForestGreen|Fuchsia|Gainsboro|GhostWhite|Gold|GoldenRod|Gray|Green|GreenYellow|HoneyDew|HotPink|IndianRed|Indigo|Ivory|Khaki|Lavender|LavenderBlush|LawnGreen|LemonChiffon|LightBlue|LightCoral|LightCyan|LightGoldenRodYellow|LightGray|LightGreen|LightPink|LightSalmon|LightSeaGreen|LightSkyBlue|LightSlateGray|LightSteelBlue|LightYellow|Lime|LimeGreen|Linen|Magenta|Maroon|MediumAquaMarine|MediumBlue|MediumOrchid|MediumPurple|MediumSeaGreen|MediumSlateBlue|MediumSpringGreen|MediumTurquoise|MediumVioletRed|MidnightBlue|MintCream|MistyRose|Moccasin|NavajoWhite|Navy|OldLace|Olive|OliveDrab|Orange|OrangeRed|Orchid|PaleGoldenRod|PaleGreen|PaleTurquoise|PaleVioletRed|PapayaWhip|PeachPuff|Peru|Pink|Plum|PowderBlue|Purple|Red|RosyBrown|RoyalBlue|SaddleBrown|Salmon|SandyBrown|SeaGreen|SeaShell|Sienna|Silver|SkyBlue|SlateBlue|SlateGray|Snow|SpringGreen|SteelBlue|Tan|Teal|Thistle|Tomato|Turquoise|Violet|Wheat|White|WhiteSmoke|Yellow|YellowGreen)\s*/ig
     variableWithUnit: -> /^(\@[a-zA-Z\_]+)\[(in|cm|mm|em|ex|pt|pc|px|s|\%)\]/g
 
   constructor: (@original = null) ->
@@ -133,10 +136,14 @@ class CSSS
             css.push(parsed) if lineBeginsWithAttribute
     if replace then lines.join('\n') else css
 
+  escapeCSSValue: (s) ->
+    s?.replace /\'/g, "\\'"
 
   operateInline: (s, options = {}) ->
-    {onlyIfOperatorsExists, enclose} = options    
+    {onlyIfOperatorsExists, enclose, escape} = options
+    escape ?= false  
     # no enclosement if we have an @access here, removed
+
 
     if s
       # remove trailing whitespaces
@@ -163,11 +170,12 @@ class CSSS
       if not hasOperators and /(@[a-zA-Z\_]+(\(.*?\)))/.test(s)
         enclose ?= true
         if enclose
+          s = @escapeCSSValue(s) if escape
           s = "'#{s}'"
           return s.replace(/(@[a-zA-Z\_]+)(\(.*?\))/g, " ' + $1$2 + ' ")
 
       if onlyIfOperatorsExists and not hasOperators
-
+        s = @escapeCSSValue(s) if escape
         return if enclose
           "'#{s.replace(/(\s@[a-zA-Z]+)(\(.*?\))*\s/g, " ' + $1$2 + ' ")}'"
         else
@@ -217,7 +225,7 @@ class CSSS
     declarationPart = for line, i in @declarationPart.split('\n')      
       unless /(\'.*\')|(\".*\")/.test(line)
         # escape color values like @color = #fff or rgba(0,0,0,0.5)
-        line = line.replace(/\s(\#[a-z0-9]{3,6})\s*/g, " '$1' ")
+        line = line.replace(@pattern.cssColorValues(), " '$1' ")
         # line = line.replace(/\s(rgb[a]*\([\s0-9\.\,]+\))/g, " '$1' ")
       # catch all unspecific value
       if @pattern.isInlineOperation.test(line)
@@ -261,13 +269,10 @@ class CSSS
           matches = line.match(@pattern.isMediaQuery)
           if matches?[2]
             line = "#{matches[1]} #{@operateInline(matches[2])}"
-            # console.log 
-            # console.log 
-            # line = line.replace /^\@media\s(.+)$/, "@media '$1'"
         # attributes
         # color: 'black'
-        else if @doesLineBeginsWithAttribute(line)#@pattern.isLineAttribute.test(line)
-          line = @parseAttributeLine(line, indent: '  ')
+        else if @doesLineBeginsWithAttribute(line)
+          line = @parseAttributeLine(line, { indent: '  ', escape: true }) # we have an escape for e.g. font: 'Lucida', Arial
         else
           line = @parseInlineArguments(line)
           # functions, like `@pad('5px')`
@@ -277,7 +282,12 @@ class CSSS
           # one selector, like `body.imprint`
           line = line.replace /\n(\s*)([a-zA-Z\.\#\&]+((?!\:\s).)*)(\s*)$/, "\n@add '$2', '$1', $4"
 
+
       styletext = lines.join('\n').replace(/\n+/g, "\n")
+      # if we have @add of selector with no properties: (TODO: find a better way instead of using regex/replace)
+      # tr:hover
+      #   a ...
+      styletext = styletext.replace /(\n@add\s.+?)(\,\s[\n])(@add\s)/g, '$1\n$3'
       @source = @declarationPart + '\n\n' + styletext.trim()
       @source = @source.trim()
       @compile()
@@ -292,7 +302,7 @@ class CSSS
     if value# do we have a value here?
       # if not in '' we try to cast a value
       unless /^\'.*\'$/.test(value)
-        value = @operateInline(value)#, enclose: true)
+        value = @operateInline(value, options)#, enclose: true)
         value = value.replace(/\+\'\)$/, ')')
         value = @parseInlineArguments(value)
       "#{indent}'#{attr}': #{value}"
@@ -358,13 +368,41 @@ class CSSS
     @_error = e if e?
     @_error?.message || @_error || null
 
-  css: ->
-    css = ''
-    try
-      css = JSON.stringify(@evaluated?._levels)
-    catch e
-      @error(e)
-    css
+  css: (cssString = '', o = null, levelBefore = null, selectorBefore = '') ->
+
+    objectToCSS = (o) ->
+      parts = for attribute of o
+        # we only escape on content attribute, or are there maybe more?
+        escape = if attribute is 'content' then "'" else ''
+        "#{attribute}: #{escape}#{o[attribute]}#{escape};"
+      if parts.length > 0 then '{ '+parts.join('\n')+' }' else null
+
+    for section in @evaluated?._levels
+      selector = selectorString = section[0]
+      level    = Math.floor section[1].length / 2
+      values   = objectToCSS(section[2])
+      # console.log selector
+
+      if level >= levelBefore
+        if selectorString[0] is '&'
+          # we have a reference here, merge together
+          console.log '__', selectorBefore
+          parts = for s in selectorString.substring(1).split(',')
+            selectorBefore.trim()+s.replace(/\s([^a-zA-Z])/,'$1') if s?.trim()
+            # insideParts = for sBefore in selectorBefore.trim().split(',')
+            #   sBefore.replace(/\s([^a-zA-Z])/,'$1') if sBefore?.trim()
+            # insideParts.join(', ').replace(/\,\s$/,'')
+          console.log parts.join(', ').replace(/\,\s$/,'')
+          selectorString = parts.join(', ').replace(/\,\s$/,'')
+        else
+          selectorString = selectorBefore + " " + selectorString
+
+
+      cssString += "\n#{selectorString} #{objectToCSS(section[2])}" if values
+      if level isnt levelBefore
+        levelBefore = level
+        selectorBefore = selectorString
+    cssString
 
 
 if window
