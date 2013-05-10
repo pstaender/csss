@@ -163,7 +163,7 @@ class CSSS
       # detect units and transform if found
       if @pattern.variableWithUnit().test(s)
         # @r[px] -> @r + 1px
-        enclose = false
+        escape = enclose = false
         s = s.replace(@pattern.variableWithUnit(), "$1 + '$2'")
 
       # enclose?, only if no operator are found

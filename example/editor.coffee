@@ -94,10 +94,17 @@ $(document).ready ->
 
   if ( timestamp() - lastUse ) > 3600
     # use default code
-    exampleCode = example
+    # exampleCode = example
+    exampleCode = ''
   else
     # load stashed input
     exampleCode = if stash.get('input') then stash.get('input') else example
+
+  $('#LoadExample').on 'click', ->
+    $in.text(example)
+  $('#ClearCode').on 'click', ->
+    $in.text('')
+    stash.set 'input', ''
 
   $in.text(exampleCode)
 

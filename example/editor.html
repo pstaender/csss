@@ -17,6 +17,7 @@
       color: #222;
       font-family: 'Lucida', Arial;
     }
+
     textarea, .textarea {
       height: 94%;
       border: 0px;
@@ -28,6 +29,13 @@
       -webkit-transition: width 0.2s;
       box-shadow: 1px 1px 1px #ddd;
       float: left;
+    }
+    textarea {
+      background: #fff;
+      float: none;
+      width: 100%;
+      height: 100%;
+      margin: 0;
     }
     .textarea.collapsed {
       width: 1em;
@@ -95,23 +103,37 @@
       font-size: 11px;
       overflow: scroll;
     }
+    #options li {
+      list-style: none;
+      margin: 0;
+      margin-bottom: 1em;
+    }
   </style>
 </head>
 <body>
-  <textarea id="in" placeholder="CSSS"></textarea>
+  <div class="textarea">
+    <textarea id="in" placeholder="CSSS"></textarea>
+  </div>
   <div class="textarea" id="transscript"><pre><code></code></pre></div>
   <div class="textarea" id="coffeescript"><pre><code></code></pre></div>
   <div class="textarea" id="out"><pre><code></code></pre></div>
+
   <div id="error" class="hidden"></div>
   <div id="options">
-    <label for="SyntaxHighlighting">syntax highlighting</label>
-    <input type="checkbox" id="SyntaxHighlighting" />
-    <br />
-    <label for="SyntaxHighlighting">beautify css</label>
-    <input type="checkbox" id="BeautifyCSS" />
-    <br />
-    <label for="ApplyOnDocument">apply on doc</label>
-    <input type="checkbox" id="ApplyOnDocument" checked="checked" />
+    <ul>
+      <li>
+        <label for="SyntaxHighlighting">syntax highlighting</label>
+        <input type="checkbox" id="SyntaxHighlighting" />
+      </li><li>
+        <label for="SyntaxHighlighting">beautify css</label>
+        <input type="checkbox" id="BeautifyCSS" />
+      </li><li>
+        <label for="ApplyOnDocument">apply on doc</label>
+        <input type="checkbox" id="ApplyOnDocument" checked="checked" />
+      </li><li>
+        <button id="LoadExample">load example</button>
+        <button id="ClearCode">clear code</button>
+      </li>
   </div>
 </body>
 </html>
