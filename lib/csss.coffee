@@ -203,14 +203,14 @@ class CSSS
     styletext        = ''
     declarationPart  = ''
     
-    # setBeginIfNotFound = '@begin'
+    setBeginIfNotFound = '@begin'
     @original = '\n'+@original # makes pattern with \n work
     # if we have a @begin we use this to split
     useMediaQueryAsSeperator = true
     splitPattern = @pattern.processPartsSeperator
     found = @original.match(splitPattern)
     if not found and useMediaQueryAsSeperator
-      @original = @original.replace(/\n@media\s/, '\n@begin\n@media ')
+      @original = @original.replace(/\n@media\s/, "\n#{setBeginIfNotFound}\n@media ")
       found = @original.match(splitPattern)
     if found
       [declarationPart, styletext] = @original.split(splitPattern)
@@ -221,7 +221,6 @@ class CSSS
       #  styletext = setBeginIfNotFound + '\n' + @original
       #else
       declarationsEnds = null
-
       for line in @original.split('\n')
         declarationsEnds = true if @pattern.isLineSelector.test(line) or @pattern.isMediaQuery
         # console.log line, @pattern.isLineSelector.test(line)
@@ -382,14 +381,14 @@ class CSSS
     @_error = e if e?
     @_error?.message || @_error || null
 
-  __levels: {}
-
   css: (cssString = '', o = null) ->
+
+    levels = {}
 
     levelBefore = null
     selectorBefore = ''
 
-    objectToCSS = (o) ->
+    _objectToCSS = (o) ->
       parts = for attribute of o
         # we only escape on content attribute, or are there maybe more?
         escape = if attribute is 'content' then "'" else ''
@@ -407,7 +406,7 @@ class CSSS
 
         selector         = selectorString = section[0]
         level            = Math.floor section[1].length / 2
-        values           = objectToCSS(section[2])
+        values           = _objectToCSS(section[2])
         isReference      = selectorString[0] is '&'
 
         if section.length > 2
@@ -416,29 +415,29 @@ class CSSS
           for i in [3...section.length]
             DocumentStyle::_extend(section[2], section[i])
 
-        if level < levelBefore and isReference and @__levels?[level-1]
-          selectorString = @__levels[level-1].trim() + selectorString.trim().substring(1)# || ''
+        if level < levelBefore and isReference and levels?[level-1]
+          selectorString = levels[level-1].trim() + selectorString.trim().substring(1)# || ''
         else if level >= levelBefore
           if isReference
             # we have a reference here, merge together
             parts = for s in selectorString.substring(1).split(',')
               s = ' '+s if /^[a-z]+/.test(s)
-              insideParts = for _s in @__levels[level-1].trim().split(',')
+              insideParts = for _s in levels[level-1].trim().split(',')
                 _s.trim()+s.replace(/\s([^a-zA-Z])/g,'$1').replace(/\s([a-zA-Z]+.+)/g,' $1') if _s?.trim()
               insideParts.join(', ').replace(/\,\s$/,'')
             selectorString = parts.join(', ').replace(/\,\s$/,'')
           else
-            before = @__levels[level-1]?.trim()
+            before = levels[level-1]?.trim()
             selectorString = selectorString.trim()
             selectorString = ' ' + selectorString unless /^[\.\#\:]{1}/.test(selectorString.trim())
             selectorString =  ( before || '' ) + ' ' + selectorString.trim()
 
-        cssString += "\n#{selectorString} #{objectToCSS(section[2])}" if values
+        cssString += "\n#{selectorString} #{_objectToCSS(section[2])}" if values
         if level isnt levelBefore
           levelBefore = level
           selectorBefore = selectorString
         
-        @__levels[level] = selectorString
+        levels[level] = selectorString
 
     cssString += " } " if mediaQuery # close {}
     cssString
