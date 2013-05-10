@@ -368,6 +368,8 @@ class CSSS
     @_error = e if e?
     @_error?.message || @_error || null
 
+  __levels: {}
+
   css: (cssString = '', o = null, levelBefore = null, selectorBefore = '') ->
 
     objectToCSS = (o) ->
@@ -381,18 +383,17 @@ class CSSS
       selector = selectorString = section[0]
       level    = Math.floor section[1].length / 2
       values   = objectToCSS(section[2])
-      # console.log selector
 
       if level >= levelBefore
         if selectorString[0] is '&'
           # we have a reference here, merge together
-          console.log '__', selectorBefore
+          #console.log '__', selectorBefore
           parts = for s in selectorString.substring(1).split(',')
-            selectorBefore.trim()+s.replace(/\s([^a-zA-Z])/,'$1') if s?.trim()
-            # insideParts = for sBefore in selectorBefore.trim().split(',')
-            #   sBefore.replace(/\s([^a-zA-Z])/,'$1') if sBefore?.trim()
-            # insideParts.join(', ').replace(/\,\s$/,'')
-          console.log parts.join(', ').replace(/\,\s$/,'')
+            s = ' '+s
+            insideParts = for _s in selectorBefore.trim().split(',')
+              _s.trim()+s.replace(/\s([^a-zA-Z])/g,'$1').replace(/\s([a-zA-Z]+.+)/g,' $1') if _s?.trim()
+            insideParts.join(', ').replace(/\,\s$/,'')
+            #s = selectorBefore.trim()+s.replace(/\s([^a-zA-Z])/g,'$1').replace(/\s([a-zA-Z]+.+)/g,' $1') if s?.trim()
           selectorString = parts.join(', ').replace(/\,\s$/,'')
         else
           selectorString = selectorBefore + " " + selectorString
@@ -402,6 +403,8 @@ class CSSS
       if level isnt levelBefore
         levelBefore = level
         selectorBefore = selectorString
+        @__levels[level] = selectorString
+    console.log @__levels
     cssString
 
 
