@@ -89,7 +89,7 @@ class CSSS
     comments: -> /(#\s.*|\/\/.*)?\n/g
     isMediaQuery: /^(\@media)\s+(.*)$/
     isCSSValue: /^([0-9\.]+(in|cm|mm|em|ex|pt|pc|px|s|\%))$/
-    hasOperator: -> /\s[\+\-\/\*]{1}\s/g
+    hasOperator: -> /\s[\+\-\/\*\%]{1}\s/g
     isNotParsableValue: /^([0-9]+(\.[0-9])*|\@*[a-zA-Z\_]+)$/ 
     doesLineBeginWithAttribute: null
     processPartsSeperator: /\n@begin\n/
@@ -203,32 +203,32 @@ class CSSS
     styletext        = ''
     declarationPart  = ''
     
-    setBeginIfNotFound = '@begin'
+    # setBeginIfNotFound = '@begin'
     @original = '\n'+@original # makes pattern with \n work
     # if we have a @begin we use this to split
-    # useMediaQueryAsSeperator = false
-    # if not @pattern.processPartsSeperator.test(@original) and useMediaQueryAsSeperator and /\n@media\s+/.test(@original)
-    #   # look for media query
-    #   splitPattern = /\n@media.*?\n/
-    # else
-    #   splitPattern = @pattern.processPartsSeperator
+    useMediaQueryAsSeperator = true
     splitPattern = @pattern.processPartsSeperator
     found = @original.match(splitPattern)
+    if not found and useMediaQueryAsSeperator
+      @original = @original.replace(/\n@media\s/, '\n@begin\n@media ')
+      found = @original.match(splitPattern)
     if found
       [declarationPart, styletext] = @original.split(splitPattern)
       styletext = "\n#{found[0]}\n" + styletext
     # else we try to detect first occurrence of selector and seperate this way 
     else
-      if setBeginIfNotFound
-        styletext = setBeginIfNotFound + '\n' + @original
-      else
-        declarationsEnds = null
-        for line in @original.split('\n')
-          declarationsEnds = true if @pattern.isLineSelector.test(line)
-          unless declarationsEnds
-            declarationPart += '\n'+line
-          else 
-            styletext += '\n'+line
+      #if setBeginIfNotFound
+      #  styletext = setBeginIfNotFound + '\n' + @original
+      #else
+      declarationsEnds = null
+
+      for line in @original.split('\n')
+        declarationsEnds = true if @pattern.isLineSelector.test(line) or @pattern.isMediaQuery
+        # console.log line, @pattern.isLineSelector.test(line)
+        unless declarationsEnds
+          declarationPart += '\n'+line
+        else 
+          styletext += '\n'+line
 
     @styletext = styletext
     @declarationPart = declarationPart
@@ -404,11 +404,17 @@ class CSSS
         cssString += "\n@media #{section[1]} {"
         mediaQuery = section[1]
       else
+
         selector         = selectorString = section[0]
         level            = Math.floor section[1].length / 2
         values           = objectToCSS(section[2])
         isReference      = selectorString[0] is '&'
-        #@__levels[level] = selectorString
+
+        if section.length > 2
+          # we have mixins here
+          # apply on the current selector
+          for i in [3...section.length]
+            DocumentStyle::_extend(section[2], section[i])
 
         if level < levelBefore and isReference and @__levels?[level-1]
           selectorString = @__levels[level-1].trim() + selectorString.trim().substring(1)# || ''
