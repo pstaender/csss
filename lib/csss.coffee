@@ -82,7 +82,7 @@ class CSSS
 
   pattern:
     isInlineOperation: /\s+([a-zA-Z0-9\(]+[\(\)\%\/\*\+\-\.\s]*)+\s*$/
-    detectUnit: /[0-9]+(\.[0-9]+)*(in\b|cm\b|mm\b|em\b|ex\b|pt\b|pc\b|px\b|s\b|%)/
+    detectUnit: /[0-9]+(\.[0-9]+)*(in\b|cm\b|mm\b|em\b|ex\b|pt\b|pc\b|px\b|s\b|\%)/
     # TODO: improve isLineSelector
     isLineSelector: /^[a-z\.\#\&]+[a-z0-9\,\s\#\*\:\>\[\]\=\~\+\.\(\)\-\"\']*$/i
     isLineAttribute: /^(\s+)([a-zA-Z\-]+)(\:|\s){1}/
@@ -322,11 +322,12 @@ class CSSS
     else
       line.replace /^(\s+)([a-zA-Z\-]+)/, "#{indent}'$2':"
 
-  parseInlineArguments: (line) ->
+  parseInlineArguments: (line) ->    
     methodsFound = line.match /@[a-zA-Z\_]+\(.+\)/g
     if methodsFound
       for method in methodsFound
-        parts = method.match /^(@[a-zA-Z\_]+)\(([a-zA-Z0-9]+)\)/
+        # s.th. like @width(80%)
+        parts = method.match /^(@[a-zA-Z\_]+)\(([a-zA-Z0-9\%]+)\)/
         if parts?[2]
           # replace
           value = parts[2]

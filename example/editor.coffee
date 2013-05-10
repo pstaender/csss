@@ -103,7 +103,11 @@ $(document).ready ->
 
 
   applyCssToDocument = (css) ->
-    $('<style type="text/css"></style>').html(css).appendTo('head')
+    $('#AppliedCSS').remove()
+    reset = """
+    html * { #{CSSS::attributesTypes.split('|').join(': auto;\n')} }
+    """
+    $('<style type="text/css" id="AppliedCSS">'+reset+'</style>').html(css).appendTo('head')
 
   displayError = (error) ->
     if error
@@ -132,12 +136,14 @@ $(document).ready ->
 
     try
       csss.eval()
-      css = csss.css()
+      css = csss.css()      
       css = cssbeautify(css, indent: '  ') if beautifyCSS
+      applyCssToDocument(css)
       if syntaxHighlighting
         $css.html  hljs.highlight('css', css).value
       else
         $css.text(css)
+
       coffeescript = csss.coffeescript || csss.declarationPart + csss.source
       if syntaxHighlighting
         $coffee.html hljs.highlight('coffeescript', coffeescript).value
@@ -165,7 +171,7 @@ $(document).ready ->
   #   parse()
   # , 2000
 
-  # applyCssToDocument('body { background: #fff; }')
+  
   #cssbeautify(style, options);
 
   $collapsableContainer = $('.textarea, #options')
@@ -185,7 +191,5 @@ $(document).ready ->
     allowedKey = [ 13, 38, 40 ] #37 is <-
     parse() if allowedKey.indexOf(key) isnt -1
 
-
-  # $("head").append css
 
 
