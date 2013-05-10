@@ -93,6 +93,7 @@ class CSSS
     isNotParsableValue: /^([0-9]+(\.[0-9])*|\@*[a-zA-Z\_]+)$/ 
     doesLineBeginWithAttribute: null
     processPartsSeperator: /\n@begin\n/
+    argumentIsString: /^\s*((\'.*\')|(\".*\"))\s*$/
     cssColorValues: ->
       #return /\s(\#[a-z0-9]{3,6})\s*/g
       /\s(\#[a-z0-9]{3,6}|AliceBlue|AntiqueWhite|Aqua|Aquamarine|Azure|Beige|Bisque|Black|BlanchedAlmond|Blue|BlueViolet|Brown|BurlyWood|CadetBlue|Chartreuse|Chocolate|Coral|CornflowerBlue|Cornsilk|Crimson|Cyan|DarkBlue|DarkCyan|DarkGoldenRod|DarkGray|DarkGreen|DarkKhaki|DarkMagenta|DarkOliveGreen|Darkorange|DarkOrchid|DarkRed|DarkSalmon|DarkSeaGreen|DarkSlateBlue|DarkSlateGray|DarkTurquoise|DarkViolet|DeepPink|DeepSkyBlue|DimGray|DimGrey|DodgerBlue|FireBrick|FloralWhite|ForestGreen|Fuchsia|Gainsboro|GhostWhite|Gold|GoldenRod|Gray|Green|GreenYellow|HoneyDew|HotPink|IndianRed|Indigo|Ivory|Khaki|Lavender|LavenderBlush|LawnGreen|LemonChiffon|LightBlue|LightCoral|LightCyan|LightGoldenRodYellow|LightGray|LightGreen|LightPink|LightSalmon|LightSeaGreen|LightSkyBlue|LightSlateGray|LightSteelBlue|LightYellow|Lime|LimeGreen|Linen|Magenta|Maroon|MediumAquaMarine|MediumBlue|MediumOrchid|MediumPurple|MediumSeaGreen|MediumSlateBlue|MediumSpringGreen|MediumTurquoise|MediumVioletRed|MidnightBlue|MintCream|MistyRose|Moccasin|NavajoWhite|Navy|OldLace|Olive|OliveDrab|Orange|OrangeRed|Orchid|PaleGoldenRod|PaleGreen|PaleTurquoise|PaleVioletRed|PapayaWhip|PeachPuff|Peru|Pink|Plum|PowderBlue|Purple|Red|RosyBrown|RoyalBlue|SaddleBrown|Salmon|SandyBrown|SeaGreen|SeaShell|Sienna|Silver|SkyBlue|SlateBlue|SlateGray|Snow|SpringGreen|SteelBlue|Tan|Teal|Thistle|Tomato|Turquoise|Violet|Wheat|White|WhiteSmoke|Yellow|YellowGreen)\s*/ig
@@ -149,6 +150,7 @@ class CSSS
       # remove trailing whitespaces
       # s = String(s).replace /\s+$/, ''
       s = String(s).trim(s)
+      return s if /^\'.*\'$/.test(s) or /^\".*\"$/.test(s) and not escape
       # no escaping if we have a number or a variable
       enclose ?= false if /^[0-9]+(\.[0-9]+)*$/.test(s) or /^\s*(@[a-zA-Z\_]+(\(.*?\))*\s*)+$/.test(s)
       # exclude '@method()' from escape
@@ -167,17 +169,17 @@ class CSSS
         s = s.replace(@pattern.variableWithUnit(), "$1 + '$2'")
 
       # enclose?, only if no operator are found
-      if not hasOperators and /(@[a-zA-Z\_]+(\(.*?\)))/.test(s)
+      if not hasOperators and /(@[a-zA-Z\_]+(\[[a-zA-Z0-9\_]+\])*(\(.*?\)))*/.test(s)
         enclose ?= true
         if enclose
           s = @escapeCSSValue(s) if escape
           s = "'#{s}'"
-          return s.replace(/(@[a-zA-Z\_]+)(\(.*?\))/g, " ' + $1$2 + ' ")
+          return s.replace(/(@[a-zA-Z\_]+)(\[[a-zA-Z0-9\_]+\])*(\(.*?\))*/g, " ' + $1$2 + ' ")
 
       if onlyIfOperatorsExists and not hasOperators
         s = @escapeCSSValue(s) if escape
         return if enclose
-          "'#{s.replace(/(\s@[a-zA-Z]+)(\(.*?\))*\s/g, " ' + $1$2 + ' ")}'"
+          "'#{s.replace(/(\s@[a-zA-Z]+)(\[[a-zA-Z0-9\_]+\])*(\(.*?\))*\s/g, " ' + $1$2 + ' ")}'"
         else
           "#{s}"
 
@@ -223,7 +225,6 @@ class CSSS
       declarationsEnds = null
       for line in @original.split('\n')
         declarationsEnds = true if @pattern.isLineSelector.test(line) or @pattern.isMediaQuery
-        # console.log line, @pattern.isLineSelector.test(line)
         unless declarationsEnds
           declarationPart += '\n'+line
         else 
@@ -322,16 +323,19 @@ class CSSS
     else
       line.replace /^(\s+)([a-zA-Z\-]+)/, "#{indent}'$2':"
 
-  parseInlineArguments: (line) ->    
+  parseInlineArguments: (line) ->   
     methodsFound = line.match /@[a-zA-Z\_]+\(.+\)/g
     if methodsFound
       for method in methodsFound
         # s.th. like @width(80%)
         parts = method.match /^(@[a-zA-Z\_]+)\(([a-zA-Z0-9\%]+)\)/
+        # table
+        #   @borderRadius(12px) -> ( 12 + 'px' ) 
         if parts?[2]
           # replace
           value = parts[2]
-          argument = if @pattern.isNotParsableValue.test(value) then value else @operateInline(value, enclose: true)
+          #argumentIsString = @pattern.argumentIsString.test(value)
+          argument = if @pattern.isNotParsableValue.test(value) then value else @operateInline(value, enclose: false)
           line = line.split(parts[0]).join(parts[1]+"(#{argument})")
     line
 
