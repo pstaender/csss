@@ -83,14 +83,16 @@ class CSSS
   pattern:
     isInlineOperation: /\s+([a-zA-Z0-9\(]+[\(\)\%\/\*\+\-\.\s]*)+\s*$/
     detectUnit: /[0-9]+(\.[0-9]+)*(in\b|cm\b|mm\b|em\b|ex\b|pt\b|pc\b|px\b|s\b|%)/
-    isLineSelector: /^[a-z\.\#\&]+[a-z0-9\,\s\#\.\(\)\-\"\']*$/i
+    # TODO: improve isLineSelector
+    isLineSelector: /^[a-z\.\#\&]+[a-z0-9\,\s\#\*\:\>\[\]\=\~\+\.\(\)\-\"\']*$/i
     isLineAttribute: /^(\s+)([a-zA-Z\-]+)(\:|\s){1}/
-    comments: -> /#\s.*?\n/g
+    comments: -> /(#\s.*|\/\/.*)?\n/g
     isMediaQuery: /^(\@media)\s+(.*)$/
     isCSSValue: /^([0-9\.]+(in|cm|mm|em|ex|pt|pc|px|s|\%))$/
     hasOperator: -> /\s[\+\-\/\*]{1}\s/g
     isNotParsableValue: /^([0-9]+(\.[0-9])*|\@*[a-zA-Z\_]+)$/ 
     doesLineBeginWithAttribute: null
+    processPartsSeperator: /\n@begin\n/
     cssColorValues: ->
       #return /\s(\#[a-z0-9]{3,6})\s*/g
       /\s(\#[a-z0-9]{3,6}|AliceBlue|AntiqueWhite|Aqua|Aquamarine|Azure|Beige|Bisque|Black|BlanchedAlmond|Blue|BlueViolet|Brown|BurlyWood|CadetBlue|Chartreuse|Chocolate|Coral|CornflowerBlue|Cornsilk|Crimson|Cyan|DarkBlue|DarkCyan|DarkGoldenRod|DarkGray|DarkGreen|DarkKhaki|DarkMagenta|DarkOliveGreen|Darkorange|DarkOrchid|DarkRed|DarkSalmon|DarkSeaGreen|DarkSlateBlue|DarkSlateGray|DarkTurquoise|DarkViolet|DeepPink|DeepSkyBlue|DimGray|DimGrey|DodgerBlue|FireBrick|FloralWhite|ForestGreen|Fuchsia|Gainsboro|GhostWhite|Gold|GoldenRod|Gray|Green|GreenYellow|HoneyDew|HotPink|IndianRed|Indigo|Ivory|Khaki|Lavender|LavenderBlush|LawnGreen|LemonChiffon|LightBlue|LightCoral|LightCyan|LightGoldenRodYellow|LightGray|LightGreen|LightPink|LightSalmon|LightSeaGreen|LightSkyBlue|LightSlateGray|LightSteelBlue|LightYellow|Lime|LimeGreen|Linen|Magenta|Maroon|MediumAquaMarine|MediumBlue|MediumOrchid|MediumPurple|MediumSeaGreen|MediumSlateBlue|MediumSpringGreen|MediumTurquoise|MediumVioletRed|MidnightBlue|MintCream|MistyRose|Moccasin|NavajoWhite|Navy|OldLace|Olive|OliveDrab|Orange|OrangeRed|Orchid|PaleGoldenRod|PaleGreen|PaleTurquoise|PaleVioletRed|PapayaWhip|PeachPuff|Peru|Pink|Plum|PowderBlue|Purple|Red|RosyBrown|RoyalBlue|SaddleBrown|Salmon|SandyBrown|SeaGreen|SeaShell|Sienna|Silver|SkyBlue|SlateBlue|SlateGray|Snow|SpringGreen|SteelBlue|Tan|Teal|Thistle|Tomato|Turquoise|Violet|Wheat|White|WhiteSmoke|Yellow|YellowGreen)\s*/ig
@@ -127,11 +129,11 @@ class CSSS
             # inc whitespace
             whiteSpaces += '  '
             whiteSpacesCount = currentWhiteSpacesCount = whiteSpacesCount + 2
-            lines[i] = l + @parseAttributeLine(line, indent: whiteSpaces)
+            lines[i] = l + @parseAttributeLine(line, { indent: whiteSpaces, escape: true })
             css.push(parsed)
           else
             whiteSpacesCount = currentWhiteSpacesCount        
-            parsed = @parseAttributeLine(line, indent: whiteSpaces)
+            parsed = @parseAttributeLine(line, { indent: whiteSpaces, escape: true } )
             lines[i] = parsed if replace
             css.push(parsed) if lineBeginsWithAttribute
     if replace then lines.join('\n') else css
@@ -143,8 +145,6 @@ class CSSS
     {onlyIfOperatorsExists, enclose, escape} = options
     escape ?= false  
     # no enclosement if we have an @access here, removed
-
-
     if s
       # remove trailing whitespaces
       # s = String(s).replace /\s+$/, ''
@@ -202,25 +202,39 @@ class CSSS
     @declarationPart = ''
     styletext        = ''
     declarationPart  = ''
+    
+    setBeginIfNotFound = '@begin'
+    @original = '\n'+@original # makes pattern with \n work
     # if we have a @begin we use this to split
-    if @original.match(/\n@begin\n/)
-      [declarationPart, styletext] = @original.split(/\n@begin\n/)
-      declarationPart += '\n@begin\n'
+    # useMediaQueryAsSeperator = false
+    # if not @pattern.processPartsSeperator.test(@original) and useMediaQueryAsSeperator and /\n@media\s+/.test(@original)
+    #   # look for media query
+    #   splitPattern = /\n@media.*?\n/
+    # else
+    #   splitPattern = @pattern.processPartsSeperator
+    splitPattern = @pattern.processPartsSeperator
+    found = @original.match(splitPattern)
+    if found
+      [declarationPart, styletext] = @original.split(splitPattern)
+      styletext = "\n#{found[0]}\n" + styletext
     # else we try to detect first occurrence of selector and seperate this way 
     else
-      declarationsEnds = null
-      for line in @original.split('\n')
-        declarationsEnds = true if @pattern.isLineSelector.test(line)
-        unless declarationsEnds
-          declarationPart += '\n'+line
-        else 
-          styletext += '\n'+line
+      if setBeginIfNotFound
+        styletext = setBeginIfNotFound + '\n' + @original
+      else
+        declarationsEnds = null
+        for line in @original.split('\n')
+          declarationsEnds = true if @pattern.isLineSelector.test(line)
+          unless declarationsEnds
+            declarationPart += '\n'+line
+          else 
+            styletext += '\n'+line
 
     @styletext = styletext
     @declarationPart = declarationPart
 
   processDeclaration: ->
-    @declarationPart = @transformCssObjectsToJSON(@declarationPart, {replace: true})
+    @declarationPart = @transformCssObjectsToJSON(@declarationPart, {replace: true,})
     # process declaration part
     declarationPart = for line, i in @declarationPart.split('\n')      
       unless /(\'.*\')|(\".*\")/.test(line)
@@ -278,9 +292,9 @@ class CSSS
           # functions, like `@pad('5px')`
           line = line.replace /^(\s+)(\@[a-zA-Z]+\(.*\))/g, '\n  $2'
           # many selectors, like `.a, i[t="ok"], #sidebar p:first-line, ul li:nth-child(3)`
-          line = line.replace /^(\s*)([a-zA-Z\.\#\&]+((?!\:\s).)*)$/, "\n@add '$2', '$1', "
+          line = line.replace /^(\s*)([a-zA-Z\.\#\&\>\:]+((?!\:\s).)*)$/, "\n@add '$2', '$1', "
           # one selector, like `body.imprint`
-          line = line.replace /\n(\s*)([a-zA-Z\.\#\&]+((?!\:\s).)*)(\s*)$/, "\n@add '$2', '$1', $4"
+          line = line.replace /\n(\s*)([a-zA-Z\.\#\&\>]+((?!\:\s).)*)(\s*)$/, "\n@add '$2', '$1', $4"
 
 
       styletext = lines.join('\n').replace(/\n+/g, "\n")
@@ -370,7 +384,10 @@ class CSSS
 
   __levels: {}
 
-  css: (cssString = '', o = null, levelBefore = null, selectorBefore = '') ->
+  css: (cssString = '', o = null) ->
+
+    levelBefore = null
+    selectorBefore = ''
 
     objectToCSS = (o) ->
       parts = for attribute of o
@@ -379,32 +396,45 @@ class CSSS
         "#{attribute}: #{escape}#{o[attribute]}#{escape};"
       if parts.length > 0 then '{ '+parts.join('\n')+' }' else null
 
+    mediaQuery = null
+
     for section in @evaluated?._levels
-      selector = selectorString = section[0]
-      level    = Math.floor section[1].length / 2
-      values   = objectToCSS(section[2])
+      if section[0] is '@media'
+        cssString += ' } ' if mediaQuery
+        cssString += "\n@media #{section[1]} {"
+        mediaQuery = section[1]
+      else
+        selector         = selectorString = section[0]
+        level            = Math.floor section[1].length / 2
+        values           = objectToCSS(section[2])
+        isReference      = selectorString[0] is '&'
+        #@__levels[level] = selectorString
 
-      if level >= levelBefore
-        if selectorString[0] is '&'
-          # we have a reference here, merge together
-          #console.log '__', selectorBefore
-          parts = for s in selectorString.substring(1).split(',')
-            s = ' '+s
-            insideParts = for _s in selectorBefore.trim().split(',')
-              _s.trim()+s.replace(/\s([^a-zA-Z])/g,'$1').replace(/\s([a-zA-Z]+.+)/g,' $1') if _s?.trim()
-            insideParts.join(', ').replace(/\,\s$/,'')
-            #s = selectorBefore.trim()+s.replace(/\s([^a-zA-Z])/g,'$1').replace(/\s([a-zA-Z]+.+)/g,' $1') if s?.trim()
-          selectorString = parts.join(', ').replace(/\,\s$/,'')
-        else
-          selectorString = selectorBefore + " " + selectorString
+        if level < levelBefore and isReference and @__levels?[level-1]
+          selectorString = @__levels[level-1].trim() + selectorString.trim().substring(1)# || ''
+        else if level >= levelBefore
+          if isReference
+            # we have a reference here, merge together
+            parts = for s in selectorString.substring(1).split(',')
+              s = ' '+s if /^[a-z]+/.test(s)
+              insideParts = for _s in @__levels[level-1].trim().split(',')
+                _s.trim()+s.replace(/\s([^a-zA-Z])/g,'$1').replace(/\s([a-zA-Z]+.+)/g,' $1') if _s?.trim()
+              insideParts.join(', ').replace(/\,\s$/,'')
+            selectorString = parts.join(', ').replace(/\,\s$/,'')
+          else
+            before = @__levels[level-1]?.trim()
+            selectorString = selectorString.trim()
+            selectorString = ' ' + selectorString unless /^[\.\#\:]{1}/.test(selectorString.trim())
+            selectorString =  ( before || '' ) + ' ' + selectorString.trim()
 
-
-      cssString += "\n#{selectorString} #{objectToCSS(section[2])}" if values
-      if level isnt levelBefore
-        levelBefore = level
-        selectorBefore = selectorString
+        cssString += "\n#{selectorString} #{objectToCSS(section[2])}" if values
+        if level isnt levelBefore
+          levelBefore = level
+          selectorBefore = selectorString
+        
         @__levels[level] = selectorString
-    console.log @__levels
+
+    cssString += " } " if mediaQuery # close {}
     cssString
 
 

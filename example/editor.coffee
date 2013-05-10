@@ -161,9 +161,9 @@ $(document).ready ->
 
   parse(true)
 
-  setInterval ->
-    parse()
-  , 1000
+  # setInterval ->
+  #   parse()
+  # , 2000
 
   # applyCssToDocument('body { background: #fff; }')
   #cssbeautify(style, options);
