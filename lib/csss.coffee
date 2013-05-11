@@ -113,7 +113,7 @@ class CSSS
     isInlineOperation: /\s+([a-zA-Z0-9\(]+[\(\)\%\/\*\+\-\.\s]*)+\s*$/
     detectUnit: /[0-9]+(\.[0-9]+)*(in\b|cm\b|mm\b|em\b|ex\b|pt\b|pc\b|px\b|s\b|\%)/
     # TODO: improve isLineSelector
-    isLineSelector: /^[a-z\.\#\&]+[a-z0-9\,\s\#\*\:\>\[\]\=\~\+\.\(\)\-\"\']*$/i
+    isLineSelector: /^[a-z\.\#\&\*]+[a-z0-9\,\s\#\*\:\>\[\]\=\~\+\.\(\)\-\"\']*$/i
     isLineAttribute: /^(\s+)([a-zA-Z\-]+)(\:|\s){1}/
     comments: -> /(#\s.*|\/\/.*)?\n/g
     isMediaQuery: /^(\@media)\s+(.*)$/
@@ -195,6 +195,7 @@ class CSSS
 
       # detect units and transform if found
       if @pattern.variableWithUnit().test(s)
+
         # @r[px] -> @r + 1px
         escape = enclose = false
         s = s.replace(@pattern.variableWithUnit(), "$1 + '$2'")
@@ -325,9 +326,9 @@ class CSSS
         # functions, like `@pad('5px')`
         line = line.replace /^(\s+)(\@[a-zA-Z]+\(.*\))/g, '\n  $2'
         # many selectors, like `.a, i[t="ok"], #sidebar p:first-line, ul li:nth-child(3)`
-        line = line.replace /^(\s*)([a-zA-Z\.\#\&\>\:]+((?!\:\s).)*)$/, "\n@add '$2', '$1', "
+        line = line.replace /^(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)$/, "\n@add '$2', '$1', "
         # one selector, like `body.imprint`
-        line = line.replace /\n(\s*)([a-zA-Z\.\#\&\>]+((?!\:\s).)*)(\s*)$/, "\n@add '$2', '$1', $4"
+        line = line.replace /\n(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)(\s*)$/, "\n@add '$2', '$1', $4"
       # check line before called a function/css query like @page
       if lineBefore and lineBeginsWithAttribute and /^\s*(@[a-z\_\-]+)([^\,]\s*)*\s*$/i.test(lineBefore)
         matches = lineBefore.match /^(\s*)(@[a-z\_\-]+)([^a-z\_\,].*)*\s*$/i
@@ -417,9 +418,9 @@ class CSSS
       rgba = -> 'rgba('+Array.prototype.slice.call(arguments).join(", ")+')'
       rgb  = -> 'rgb('+Array.prototype.slice.call(arguments).join(", ")+')'
       doc.init()
-      doc.eval = ->
+      doc.__eval__ = ->
         #{@coffeescript}
-      doc.eval()
+      doc.__eval__()
       doc
       """
       @evaluated = CoffeeScript.eval(@coffeescript)
