@@ -49,13 +49,42 @@ class DocumentStyle
     args = Array.prototype.slice.call(arguments)
     @_levels.push(args)
 
+  addLine: (line, addTrailingSemicolon) ->
+    @add if addTrailingSemicolon then line.replace /\;+\s*$/, ';' else line
+
   addEnvironment: (yourClass) ->
     if typeof yourClass is 'function'
       className = yourClass.toString()?.split('\n')?[0].replace(/^function\s(.+?)\(.*/, '$1')
       @_environments[className] = yourClass
 
+  charset: (charset) -> @addLine("@charset '#{charset}';") if charset
+  
+  page: (selector, values) ->    
+    {selector, values} = @_selectorAndValues(selector, values)
+    @addLine("@page #{selector} #{@object_to_css(values)}") if selector
+
+  _selectorAndValues: (selector,values) ->
+    if typeof selector is 'Object'
+      { selector: '', values: selector }
+    else
+      selector ?= ''
+      { selector, values }
+  # charset: (charset) -> @addLine("@charset '#{charset}';") if charset
+  # charset: (charset) -> @addLine("@charset '#{charset}';") if charset
+
+  font_face: (query) ->
+    @add '@font-face', query
+
   media: (query) ->
     @add '@media', query
+
+  object_to_css: (o) ->
+    return '' if not o? or typeof o isnt 'object'
+    parts = for attribute of o
+      # we only escape on content attribute, or are there maybe more?
+      escape = if attribute is 'content' then "'" else ''
+      "#{attribute}: #{escape}#{o[attribute]}#{escape};"
+    if parts.length > 0 then '{ '+parts.join('\n')+' }' else null
 
 
 class MyEnvironment
@@ -88,11 +117,13 @@ class CSSS
     isLineAttribute: /^(\s+)([a-zA-Z\-]+)(\:|\s){1}/
     comments: -> /(#\s.*|\/\/.*)?\n/g
     isMediaQuery: /^(\@media)\s+(.*)$/
+    isCSSQuery: /^(@media|@font\_face|@charset|@document|@namespace|@supports|@page)\s+(.*)$/
     isCSSValue: /^([0-9\.]+(in|cm|mm|em|ex|pt|pc|px|s|\%))$/
     hasOperator: -> /\s[\+\-\/\*\%]{1}\s/g
     isNotParsableValue: /^([0-9]+(\.[0-9])*|\@*[a-zA-Z\_]+)$/ 
     doesLineBeginWithAttribute: null
     processPartsSeperator: /\n@begin\n/
+    hasHyphenFunctionName: /(\s*)(@[a-z\_]+[a-z\_\-]+)/g
     argumentIsString: /^\s*((\'.*\')|(\".*\"))\s*$/
     cssColorValues: ->
       #return /\s(\#[a-z0-9]{3,6})\s*/g
@@ -219,12 +250,9 @@ class CSSS
       styletext = "\n#{found[0]}\n" + styletext
     # else we try to detect first occurrence of selector and seperate this way 
     else
-      #if setBeginIfNotFound
-      #  styletext = setBeginIfNotFound + '\n' + @original
-      #else
       declarationsEnds = null
       for line in @original.split('\n')
-        declarationsEnds = true if @pattern.isLineSelector.test(line) or @pattern.isMediaQuery
+        declarationsEnds = true if @pattern.isLineSelector.test(line) or @pattern.isMediaQuery.test(line)
         unless declarationsEnds
           declarationPart += '\n'+line
         else 
@@ -236,11 +264,13 @@ class CSSS
   processDeclaration: ->
     @declarationPart = @transformCssObjectsToJSON(@declarationPart, {replace: true,})
     # process declaration part
-    declarationPart = for line, i in @declarationPart.split('\n')      
+    declarationPart = for line, i in @declarationPart.split('\n') 
+      line = @renameHyphenFunctionName(line)     
       unless /(\'.*\')|(\".*\")/.test(line)
         # escape color values like @color = #fff or rgba(0,0,0,0.5)
         line = line.replace(@pattern.cssColorValues(), " '$1' ")
         # line = line.replace(/\s(rgb[a]*\([\s0-9\.\,]+\))/g, " '$1' ")
+      @renameHyphenFunctionName(line)
       # catch all unspecific value
       if @pattern.isInlineOperation.test(line)
         parts = line.match(/^(\s*)(.*?\=\s*)(.*)$/,line)
@@ -262,6 +292,56 @@ class CSSS
       regex = @pattern.doesLineBeginWithAttribute = new RegExp(regexString)
     regex.test(line)
 
+  renameHyphenFunctionName: (line, replaceHyphenWith = '_') ->
+    # replace function names
+    # e.g. @font-face -> @font_face
+    if @pattern.hasHyphenFunctionName.test(line)
+      match = line.match @pattern.hasHyphenFunctionName
+      if match[0]
+        name = match[0]
+        newName = name.replace /\-+/g, replaceHyphenWith
+        line = line.split(name).join(newName)
+    line
+
+  processStyleText: ->
+    styletext = @styletext
+    lines = styletext.split('\n')
+    for line, i in lines
+      lineBeginsWithAttribute = @doesLineBeginsWithAttribute(line)
+      line = @renameHyphenFunctionName(line)
+      lineBefore = lines[i-1]
+      # media queries have an exception rule
+      if @pattern.isCSSQuery.test(line)
+        # @media
+        matches = line.match(@pattern.isCSSQuery)
+        if matches?[2]
+          line = "#{matches[1]} #{@operateInline(matches[2])}"
+      # attributes
+      # color: 'black'
+      else if lineBeginsWithAttribute
+        line = @parseAttributeLine(line, { indent: '  ', escape: true }) # we have an escape for e.g. font: 'Lucida', Arial
+      else
+        line = @parseInlineArguments(line)
+        # functions, like `@pad('5px')`
+        line = line.replace /^(\s+)(\@[a-zA-Z]+\(.*\))/g, '\n  $2'
+        # many selectors, like `.a, i[t="ok"], #sidebar p:first-line, ul li:nth-child(3)`
+        line = line.replace /^(\s*)([a-zA-Z\.\#\&\>\:]+((?!\:\s).)*)$/, "\n@add '$2', '$1', "
+        # one selector, like `body.imprint`
+        line = line.replace /\n(\s*)([a-zA-Z\.\#\&\>]+((?!\:\s).)*)(\s*)$/, "\n@add '$2', '$1', $4"
+      # check line before called a function/css query like @page
+      if lineBefore and lineBeginsWithAttribute and /^\s*(@[a-z\_\-]+)([^\,]\s*)*\s*$/i.test(lineBefore)
+        matches = lineBefore.match /^(\s*)(@[a-z\_\-]+)([^a-z\_\,].*)*\s*$/i
+        changedLine  = matches[1]+matches[2]
+        # TODO: what if @rule :pseudo, :pseudo ?
+        lines[i-1] = changedLine += ( if matches[3] then matches[3]+',' else '' ) + ' __$cssAttributes__ ='
+      lines[i] = line
+
+    @styletext = lines.join('\n').replace(/\n+/g, "\n")
+    # if we have @add of selector with no properties: (TODO: find a better way instead of using regex/replace)
+    # tr:hover
+    #   a ...
+    @styletext = @styletext.replace /(\n@add\s.+?)(\,\s[\n])(@add\s)/g, '$1\n$3'
+
   parse: (s) ->    
     @original = s if s
     if @original
@@ -274,35 +354,11 @@ class CSSS
 
       @processDeclaration()
       
-      styletext = '\n'+@cleanup(@styletext)
+      @styletext = '\n'+@cleanup(@styletext)
 
-      lines = for line in styletext.split('\n')
-        # media queries have an exception rule
-        if @pattern.isMediaQuery.test(line)
-          # @media
-          matches = line.match(@pattern.isMediaQuery)
-          if matches?[2]
-            line = "#{matches[1]} #{@operateInline(matches[2])}"
-        # attributes
-        # color: 'black'
-        else if @doesLineBeginsWithAttribute(line)
-          line = @parseAttributeLine(line, { indent: '  ', escape: true }) # we have an escape for e.g. font: 'Lucida', Arial
-        else
-          line = @parseInlineArguments(line)
-          # functions, like `@pad('5px')`
-          line = line.replace /^(\s+)(\@[a-zA-Z]+\(.*\))/g, '\n  $2'
-          # many selectors, like `.a, i[t="ok"], #sidebar p:first-line, ul li:nth-child(3)`
-          line = line.replace /^(\s*)([a-zA-Z\.\#\&\>\:]+((?!\:\s).)*)$/, "\n@add '$2', '$1', "
-          # one selector, like `body.imprint`
-          line = line.replace /\n(\s*)([a-zA-Z\.\#\&\>]+((?!\:\s).)*)(\s*)$/, "\n@add '$2', '$1', $4"
-
-
-      styletext = lines.join('\n').replace(/\n+/g, "\n")
-      # if we have @add of selector with no properties: (TODO: find a better way instead of using regex/replace)
-      # tr:hover
-      #   a ...
-      styletext = styletext.replace /(\n@add\s.+?)(\,\s[\n])(@add\s)/g, '$1\n$3'
-      @source = @declarationPart + '\n\n' + styletext.trim()
+      @processStyleText()
+      
+      @source = @declarationPart + '\n\n' + @styletext.trim()
       @source = @source.trim()
       @compile()
 
@@ -377,8 +433,6 @@ class CSSS
     # * tabs to spaces
     s = "\n"+s.replace(/\n+/g, "\n")
     s = s.replace /\;[^\S\n]*/g, ''
-      #.replace /\s*\}[^\S\n]*/g, ''
-      #.replace /\n(.+?)\s+\{[^\S\n]*/g, '\n$1'
       .replace /\t/g, '  '
     s.trim()
 
@@ -393,25 +447,22 @@ class CSSS
     levelBefore = null
     selectorBefore = ''
 
-    _objectToCSS = (o) ->
-      parts = for attribute of o
-        # we only escape on content attribute, or are there maybe more?
-        escape = if attribute is 'content' then "'" else ''
-        "#{attribute}: #{escape}#{o[attribute]}#{escape};"
-      if parts.length > 0 then '{ '+parts.join('\n')+' }' else null
-
     mediaQuery = null
 
     for section in @evaluated?._levels
-      if section[0] is '@media'
+      if section.length is 1
+        # we have just a line
+        cssString += section[0]
+      else if section[0] is '@media'
         cssString += ' } ' if mediaQuery
         cssString += "\n@media #{section[1]} {"
         mediaQuery = section[1]
+      else if section[0] is '@font-face'
+        cssString += "\nfont-face: #{DocumentStyle::object_to_css(section[1])}\n"
       else
-
         selector         = selectorString = section[0]
         level            = Math.floor section[1].length / 2
-        values           = _objectToCSS(section[2])
+        values           = DocumentStyle::object_to_css(section[2])
         isReference      = selectorString[0] is '&'
 
         if section.length > 2
@@ -437,7 +488,7 @@ class CSSS
             selectorString = ' ' + selectorString unless /^[\.\#\:]{1}/.test(selectorString.trim())
             selectorString =  ( before || '' ) + ' ' + selectorString.trim()
 
-        cssString += "\n#{selectorString} #{_objectToCSS(section[2])}" if values
+        cssString += "\n#{selectorString} #{DocumentStyle::object_to_css(section[2])}" if values
         if level isnt levelBefore
           levelBefore = level
           selectorBefore = selectorString
