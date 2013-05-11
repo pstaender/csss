@@ -1,5 +1,7 @@
 throw 'CoffeeScript is needed' unless CoffeeScript?
 
+#TODO: lineBefore
+
 class DocumentStyle
 
   _import: []
@@ -61,10 +63,12 @@ class DocumentStyle
   
   page: (selector, values) ->    
     {selector, values} = @_selectorAndValues(selector, values)
-    @addLine("@page #{selector} #{@object_to_css(values)}") if selector
+    # values = if values then values else ''
+    values = @object_to_css(values) if values
+    @addLine("@page #{selector} #{values}") if selector
 
   _selectorAndValues: (selector,values) ->
-    if typeof selector is 'Object'
+    if typeof selector is 'object'
       { selector: '', values: selector }
     else
       selector ?= ''
@@ -307,10 +311,11 @@ class CSSS
   processStyleText: ->
     styletext = @styletext
     lines = styletext.split('\n')
+    lastSelectorLine = null
     for line, i in lines
       lineBeginsWithAttribute = @doesLineBeginsWithAttribute(line)
       line = @renameHyphenFunctionName(line)
-      lineBefore = lines[i-1]
+      lineBefore = lines[lastSelectorLine]
       # media queries have an exception rule
       if @pattern.isCSSQuery.test(line)
         # @media
@@ -320,7 +325,7 @@ class CSSS
       # attributes
       # color: 'black'
       else if lineBeginsWithAttribute
-        line = @parseAttributeLine(line, { indent: '  ', escape: true }) # we have an escape for e.g. font: 'Lucida', Arial
+        line = @parseAttributeLine(line, { indent: line.match(/^\s+/)[0], escape: true }) # we have an escape for e.g. font: 'Lucida', Arial
       else
         line = @parseInlineArguments(line)
         # functions, like `@pad('5px')`
@@ -329,12 +334,14 @@ class CSSS
         line = line.replace /^(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)$/, "\n@add '$2', '$1', "
         # one selector, like `body.imprint`
         line = line.replace /\n(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)(\s*)$/, "\n@add '$2', '$1', $4"
+        lastSelectorLine = null
       # check line before called a function/css query like @page
       if lineBefore and lineBeginsWithAttribute and /^\s*(@[a-z\_\-]+)([^\,]\s*)*\s*$/i.test(lineBefore)
         matches = lineBefore.match /^(\s*)(@[a-z\_\-]+)([^a-z\_\,].*)*\s*$/i
         changedLine  = matches[1]+matches[2]
         # TODO: what if @rule :pseudo, :pseudo ?
-        lines[i-1] = changedLine += ( if matches[3] then matches[3]+',' else '' ) + ' __$cssAttributes__ ='
+        lines[lastSelectorLine] = changedLine += ( if matches[3] then matches[3]+',' else '' ) + ' __$cssAttributes__ ='
+      lastSelectorLine = i if /^@[a-zA-Z\_\-]+/.test(line)
       lines[i] = line
 
     @styletext = lines.join('\n').replace(/\n+/g, "\n")
