@@ -10,13 +10,12 @@ class DocumentStyle
   eval: null
   _environments: {}
 
-  begin: '# csss definition starts here'
+  # non public / protected
 
-  init: ->
+  __init__: ->
     @_levels = []
 
-  # copy + paste from underscore
-  _extend: (obj) ->
+  __extend__: (obj) ->
     has = (obj, key) -> Object::hasOwnProperty.call(obj, key)
     each = (obj, iterator, context) ->
       return  unless obj?
@@ -37,13 +36,26 @@ class DocumentStyle
           obj[prop] = source[prop]
     obj
 
+  object_to_css: (o) ->
+    return '' if not o? or typeof o isnt 'object'
+    parts = for attribute of o
+      # we only escape on content attribute, or are there maybe more?
+      escape = if attribute is 'content' then "'" else ''
+      values = if o[attribute]?.constructor is Array then o[attribute].join(' ') else o[attribute]
+      "#{attribute}: #{escape}#{values}#{escape};"
+    if parts.length > 0 then '{ '+parts.join('\n')+' }' else null
+
+  # public for css usage
+
+  begin: true # @begin selector
+
   import: (file) ->
     @_import.push(file)
 
   use: (yourClassName) ->
     yourClass = @_environments[yourClassName]
     if yourClass and typeof yourClass is 'function'
-      DocumentStyle::_extend(@,new yourClass)
+      DocumentStyle::__extend__(@,new yourClass)
     else
       throw new Error("Couldn't find/use '#{yourClassName}'")
 
@@ -54,7 +66,7 @@ class DocumentStyle
   addLine: (line, addTrailingSemicolon) ->
     @add if addTrailingSemicolon then line.replace /\;+\s*$/, ';' else line
 
-  addEnvironment: (yourClass) ->
+  __add_environment__: (yourClass) ->
     if typeof yourClass is 'function'
       className = yourClass.toString()?.split('\n')?[0].replace(/^function\s(.+?)\(.*/, '$1')
       @_environments[className] = yourClass
@@ -62,41 +74,23 @@ class DocumentStyle
   charset: (charset) -> @addLine("@charset '#{charset}';") if charset
   
   page: (selector, values) ->    
-    {selector, values} = @_selectorAndValues(selector, values)
+    {selector, values} = DocumentStyle::seperate_selector_and_values(selector, values)
     # values = if values then values else ''
     values = @object_to_css(values) if values
     @addLine("@page #{selector} #{values}") if selector
 
-  _selectorAndValues: (selector,values) ->
+  seperate_selector_and_values: (selector,values) ->
     if typeof selector is 'object'
       { selector: '', values: selector }
     else
       selector ?= ''
       { selector, values }
-  # charset: (charset) -> @addLine("@charset '#{charset}';") if charset
-  # charset: (charset) -> @addLine("@charset '#{charset}';") if charset
-
+  # @document, @keyframes, @viewport, @namespace, @support
   font_face: (query) ->
     @add '@font-face', query
 
   media: (query) ->
     @add '@media', query
-
-  object_to_css: (o) ->
-    return '' if not o? or typeof o isnt 'object'
-    parts = for attribute of o
-      # we only escape on content attribute, or are there maybe more?
-      escape = if attribute is 'content' then "'" else ''
-      "#{attribute}: #{escape}#{o[attribute]}#{escape};"
-    if parts.length > 0 then '{ '+parts.join('\n')+' }' else null
-
-
-class MyEnvironment
-
-  myPadding: ->
-    ( 12 + 'px' )
-
-DocumentStyle::addEnvironment(MyEnvironment)
 
 class CSSS
 
@@ -111,7 +105,7 @@ class CSSS
   declarationPart: null
   seperateDeclarations: true # TODO: make that obsolete
 
-  attributesTypes: 'animation|animation-name|animation-duration|animation-timing-function|animation-delay|animation-iteration-count|animation-direction|animation-play-state|background|background-attachment|background-color|background-image|background-position|background-repeat|background-clip|background-origin|background-size|border|border-bottom|border-bottom-color|border-bottom-style|border-bottom-width|border-color|border-left|border-left-color|border-left-style|border-left-width|border-right|border-right-color|border-right-style|border-right-width|border-style|border-top|border-top-color|border-top-style|border-top-width|border-width|outline|outline-color|outline-style|outline-width|border-bottom-left-radius|border-bottom-right-radius|border-image|border-image-outset|border-image-repeat|border-image-slice|border-image-source|border-image-width|border-radius|border-top-left-radius|border-top-right-radius|box-decoration-break|box-shadow|overflow-x|overflow-y|overflow-style|rotation|rotation-point|color-profile|opacity|rendering-intent|bookmark-label|bookmark-level|bookmark-target|float-offset|hyphenate-after|hyphenate-before|hyphenate-character|hyphenate-lines|hyphenate-resource|hyphens|image-resolution|marks|string-set|height|max-height|max-width|min-height|min-width|width|box-align|box-direction|box-flex|box-flex-group|box-lines|box-ordinal-group|box-orient|box-pack|font|font-family|font-size|font-style|font-variant|font-weight|@font-face|font-size-adjust|font-stretch|content|counter-increment|counter-reset|quotes|crop|move-to|page-policy|grid-columns|grid-rows|target|target-name|target-new|target-position|alignment-adjust|alignment-baseline|baseline-shift|dominant-baseline|drop-initial-after-adjust|drop-initial-after-align|drop-initial-before-adjust|drop-initial-before-align|drop-initial-size|drop-initial-value|inline-box-align|line-stacking|line-stacking-ruby|line-stacking-shift|line-stacking-strategy|text-height|list-style|list-style-image|list-style-position|list-style-type|margin|margin-bottom|margin-left|margin-right|margin-top|marquee-direction|marquee-play-count|marquee-speed|marquee-style|column-count|column-fill|column-gap|column-rule|column-rule-color|column-rule-style|column-rule-width|column-span|column-width|columns|padding|padding-bottom|padding-left|padding-right|padding-top|fit|fit-position|image-orientation|page|size|bottom|clear|clip|cursor|display|float|left|overflow|position|right|top|visibility|z-index|orphans|page-break-after|page-break-before|page-break-inside|widows|ruby-align|ruby-overhang|ruby-position|ruby-span|mark|mark-after|mark-before|phonemes|rest|rest-after|rest-before|voice-balance|voice-duration|voice-pitch|voice-pitch-range|voice-rate|voice-stress|voice-volume|border-collapse|border-spacing|caption-side|empty-cells|table-layout|color|direction|letter-spacing|line-height|text-align|text-decoration|text-indent|text-transform|unicode-bidi|vertical-align|white-space|word-spacing|hanging-punctuation|punctuation-trim|text-align-last|text-justify|text-outline|text-overflow|text-shadow|text-wrap|word-break|word-wrap|2transform|transform-origin|transform-style|perspective|perspective-origin|backface-visibility|transition|transition-property|transition-duration|transition-timing-function|transition-delay|appearance|box-sizing|icon|nav-down|nav-index|nav-left|nav-right|nav-up|outline-offset|resize'
+  attributesTypes: 'filter|animation|animation-name|animation-duration|animation-timing-function|animation-delay|animation-iteration-count|animation-direction|animation-play-state|background|background-attachment|background-color|background-image|background-position|background-repeat|background-clip|background-origin|background-size|border|border-bottom|border-bottom-color|border-bottom-style|border-bottom-width|border-color|border-left|border-left-color|border-left-style|border-left-width|border-right|border-right-color|border-right-style|border-right-width|border-style|border-top|border-top-color|border-top-style|border-top-width|border-width|outline|outline-color|outline-style|outline-width|border-bottom-left-radius|border-bottom-right-radius|border-image|border-image-outset|border-image-repeat|border-image-slice|border-image-source|border-image-width|border-radius|border-top-left-radius|border-top-right-radius|box-decoration-break|box-shadow|overflow-x|overflow-y|overflow-style|rotation|rotation-point|color-profile|opacity|rendering-intent|bookmark-label|bookmark-level|bookmark-target|float-offset|hyphenate-after|hyphenate-before|hyphenate-character|hyphenate-lines|hyphenate-resource|hyphens|image-resolution|marks|string-set|height|max-height|max-width|min-height|min-width|width|box-align|box-direction|box-flex|box-flex-group|box-lines|box-ordinal-group|box-orient|box-pack|font|font-family|font-size|font-style|font-variant|font-weight|@font-face|font-size-adjust|font-stretch|content|counter-increment|counter-reset|quotes|crop|move-to|page-policy|grid-columns|grid-rows|target|target-name|target-new|target-position|alignment-adjust|alignment-baseline|baseline-shift|dominant-baseline|drop-initial-after-adjust|drop-initial-after-align|drop-initial-before-adjust|drop-initial-before-align|drop-initial-size|drop-initial-value|inline-box-align|line-stacking|line-stacking-ruby|line-stacking-shift|line-stacking-strategy|text-height|list-style|list-style-image|list-style-position|list-style-type|margin|margin-bottom|margin-left|margin-right|margin-top|marquee-direction|marquee-play-count|marquee-speed|marquee-style|column-count|column-fill|column-gap|column-rule|column-rule-color|column-rule-style|column-rule-width|column-span|column-width|columns|padding|padding-bottom|padding-left|padding-right|padding-top|fit|fit-position|image-orientation|page|size|bottom|clear|clip|cursor|display|float|left|overflow|position|right|top|visibility|z-index|orphans|page-break-after|page-break-before|page-break-inside|widows|ruby-align|ruby-overhang|ruby-position|ruby-span|mark|mark-after|mark-before|phonemes|rest|rest-after|rest-before|voice-balance|voice-duration|voice-pitch|voice-pitch-range|voice-rate|voice-stress|voice-volume|border-collapse|border-spacing|caption-side|empty-cells|table-layout|color|direction|letter-spacing|line-height|text-align|text-decoration|text-indent|text-transform|unicode-bidi|vertical-align|white-space|word-spacing|hanging-punctuation|punctuation-trim|text-align-last|text-justify|text-outline|text-overflow|text-shadow|text-wrap|word-break|word-wrap|2transform|transform-origin|transform-style|perspective|perspective-origin|backface-visibility|transition|transition-property|transition-duration|transition-timing-function|transition-delay|appearance|box-sizing|icon|nav-down|nav-index|nav-left|nav-right|nav-up|outline-offset|resize'
 
   pattern:
     isInlineOperation: /\s+([a-zA-Z0-9\(]+[\(\)\%\/\*\+\-\.\s]*)+\s*$/
@@ -135,9 +129,7 @@ class CSSS
     variableWithUnit: -> /^(\@[a-zA-Z\_]+)\[(in|cm|mm|em|ex|pt|pc|px|s|\%)\]/g
 
   constructor: (@original = null) ->
-
-  createContext: ->
-    @context = new DocumentStyle()
+    @context = new DocumentStyle
 
   transformCssObjectsToJSON: (s, options = {}) ->
     # TODO: refactor
@@ -204,18 +196,19 @@ class CSSS
         escape = enclose = false
         s = s.replace(@pattern.variableWithUnit(), "$1 + '$2'")
 
+      # TODO: with or with whitespaces wraped? ` ' + $1..$3 +' `
       # enclose?, only if no operator are found
       if not hasOperators and /(@[a-zA-Z\_]+(\[[a-zA-Z0-9\_]+\])*(\(.*?\)))*/.test(s)
         enclose ?= true
         if enclose
           s = @escapeCSSValue(s) if escape
           s = "'#{s}'"
-          return s.replace(/(@[a-zA-Z\_]+)(\[[a-zA-Z0-9\_]+\])*(\(.*?\))*/g, " ' + $1$2 + ' ")
+          return s.replace(/(@[a-zA-Z\_]+)(\[[a-zA-Z0-9\_]+\])*(\(.*?\))*/g, "' + $1$2$3 + '")
 
       if onlyIfOperatorsExists and not hasOperators
         s = @escapeCSSValue(s) if escape
         return if enclose
-          "'#{s.replace(/(\s@[a-zA-Z]+)(\[[a-zA-Z0-9\_]+\])*(\(.*?\))*\s/g, " ' + $1$2 + ' ")}'"
+          "'#{s.replace(/(\s@[a-zA-Z]+)(\[[a-zA-Z0-9\_]+\])*(\(.*?\))*\s/g, "' + $1$2$3 + '")}'"
         else
           "#{s}"
 
@@ -293,7 +286,7 @@ class CSSS
     else
       # generate pattern
       regexString = @attributesTypes.split('-').join('\\-')#.replace(/([a-z\-]+)/g, '($1)')
-      regexString = "^\\s+(\\-moz\\-|\\-ms\\-|mso\\-|\\-khtml\\-|\\-webkit\\-|\\-o\\-){0,1}(#{regexString}){1}"
+      regexString = "^\\s+(\\-moz\\-|\\-ms\\-|mso\\-|\\-khtml\\-|\\-webkit\\-|\\-o\\-){0,1}(#{regexString}){1}([\\s\\:]{1}.*)*$"
       regex = @pattern.doesLineBeginWithAttribute = new RegExp(regexString)
     regex.test(line)
 
@@ -308,14 +301,22 @@ class CSSS
         line = line.split(name).join(newName)
     line
 
+  _indentSpacesOfLine: (line) ->
+    line.match(/^\s+/)?[0].length || 0
+
   processStyleText: ->
     styletext = @styletext
-    lines = styletext.split('\n')
+    lines            = styletext.split('\n')
+    originalLines    = styletext.split('\n')
     lastSelectorLine = null
+    isInListedValues = null
     for line, i in lines
       lineBeginsWithAttribute = @doesLineBeginsWithAttribute(line)
       line = @renameHyphenFunctionName(line)
-      lineBefore = lines[lastSelectorLine]
+      indentSpacesCount = @_indentSpacesOfLine(line)
+      lineBefore = originalLines[i-1] || ''
+      nextLine   = originalLines[i+1] || null
+      lastLineWithSelector = lines[lastSelectorLine]
       # media queries have an exception rule
       if @pattern.isCSSQuery.test(line)
         # @media
@@ -328,20 +329,36 @@ class CSSS
         line = @parseAttributeLine(line, { indent: line.match(/^\s+/)[0], escape: true }) # we have an escape for e.g. font: 'Lucida', Arial
       else
         line = @parseInlineArguments(line)
-        # functions, like `@pad('5px')`
-        line = line.replace /^(\s+)(\@[a-zA-Z]+\(.*\))/g, '\n  $2'
-        # many selectors, like `.a, i[t="ok"], #sidebar p:first-line, ul li:nth-child(3)`
-        line = line.replace /^(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)$/, "\n@add '$2', '$1', "
-        # one selector, like `body.imprint`
-        line = line.replace /\n(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)(\s*)$/, "\n@add '$2', '$1', $4"
-        lastSelectorLine = null
+        # s.th. like
+        # div#Container
+        #   filter
+        #     blur(2)
+        #     grayscale(1)
+        if @doesLineBeginsWithAttribute(lineBefore) or isInListedValues
+          lines[i-1] += ' [' unless isInListedValues
+          isInListedValues = /^\s+[\#a-zA-Z\_\-0-9\(\)\.]+/.test(line) or /^\s+\@/.test(line)
+          whitespaces = Array(indentSpacesCount+1).join(' ')
+          line        = whitespaces + @operateInline(line, {escape: false, enclose: true})
+          lines[i] = line
+          if not nextLine or ( nextLine and @_indentSpacesOfLine(nextLine) isnt indentSpacesCount )
+            line += ' ]' 
+            isInListedValues = false
+        else
+          # functions, like `@pad('5px')`
+          line = line.replace /^(\s+)(\@[a-zA-Z]+\(.*\))/g, '\n$1$2'
+          # many selectors, like `.a, i[t="ok"], #sidebar p:first-line, ul li:nth-child(3)`
+          line = line.replace /^(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)$/, "\n@add '$2', '$1', "
+          # one selector, like `body.imprint`
+          line = line.replace /\n(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)(\s*)$/, "\n@add '$2', '$1', $4"
+          lastSelectorLine = null
       # check line before called a function/css query like @page
-      if lineBefore and lineBeginsWithAttribute and /^\s*(@[a-z\_\-]+)([^\,]\s*)*\s*$/i.test(lineBefore)
-        matches = lineBefore.match /^(\s*)(@[a-z\_\-]+)([^a-z\_\,].*)*\s*$/i
+      if lastLineWithSelector and lineBeginsWithAttribute and /^\s*(@[a-z\_\-]+)([^\,]\s*)*\s*$/i.test(lastLineWithSelector)
+        matches = lastLineWithSelector.match /^(\s*)(@[a-z\_\-]+)([^a-z\_\,].*)*\s*$/i
         changedLine  = matches[1]+matches[2]
         # TODO: what if @rule :pseudo, :pseudo ?
         lines[lastSelectorLine] = changedLine += ( if matches[3] then matches[3]+',' else '' ) + ' __$cssAttributes__ ='
       lastSelectorLine = i if /^@[a-zA-Z\_\-]+/.test(line)
+
       lines[i] = line
 
     @styletext = lines.join('\n').replace(/\n+/g, "\n")
@@ -385,7 +402,7 @@ class CSSS
         value = @parseInlineArguments(value)
       "#{indent}'#{attr}': #{value}"
     else
-      line.replace /^(\s+)([a-zA-Z\-]+)/, "#{indent}'$2':"
+      line.replace /^(\s+)([a-zA-Z\-\_]+)\:*/, "#{indent}'$2':"
 
   parseInlineArguments: (line) ->   
     methodsFound = line.match /@[a-zA-Z\_]+\(.+\)/g
@@ -422,9 +439,9 @@ class CSSS
         CoffeeScript.__csss_context = @context
       @coffeescript = """
       doc = CoffeeScript.__csss_context || this
-      rgba = -> 'rgba('+Array.prototype.slice.call(arguments).join(", ")+')'
+      rgba = (colors...) -> 'rgba('+colors.join(", ")+')'
       rgb  = -> 'rgb('+Array.prototype.slice.call(arguments).join(", ")+')'
-      doc.init()
+      doc.__init__()
       doc.__eval__ = ->
         #{@coffeescript}
       doc.__eval__()
@@ -443,6 +460,9 @@ class CSSS
     s = s.replace /\;[^\S\n]*/g, ''
       .replace /\t/g, '  '
     s.trim()
+
+  use: (MyEnvironmentClass) ->
+    @context.__add_environment__ MyEnvironmentClass
 
   error: (e) ->
     @_error = e if e?
@@ -477,7 +497,7 @@ class CSSS
           # we have mixins here
           # apply on the current selector
           for i in [3...section.length]
-            DocumentStyle::_extend(section[2], section[i])
+            DocumentStyle::__extend__(section[2], section[i])
 
         if level < levelBefore and isReference and levels?[level-1]
           selectorString = levels[level-1].trim() + selectorString.trim().substring(1)# || ''
@@ -505,7 +525,6 @@ class CSSS
 
     cssString += " } " if mediaQuery # close {}
     cssString
-
 
 if window
   window.CSSS ?= CSSS
