@@ -210,6 +210,7 @@ class CSSS
         unit = s.match(/\[(in|cm|mm|em|ex|pt|pc|px|s|\%)\]/i)[1]
         # strip unit
         s = s.split("[#{unit}]").join('')+" , '#{unit}'"
+        s = "( new @__cssvalue__( #{s} ).valueOf() )"
         #s = s.replace(@pattern.variableWithUnit(), "$1 + '$2'")
 
       # TODO: with or with whitespaces wraped? ` ' + $1..$3 +' `
@@ -358,7 +359,7 @@ class CSSS
           lines[i-1] += ' [' if not isInListedValues 
           isInListedValues = /^\s+[\#a-zA-Z\_\-0-9\(\)\.]+/.test(line) or /^\s+\@/.test(line)
           whitespaces = Array(indentSpacesCount+1).join(' ')
-          line        = whitespaces + @operateInline(line, {escape: false, enclose: true})
+          line        = whitespaces + @operateInline(line, {escape: false, enclose: true, withUnit: true})
           lines[i] = line
           if not nextLine or ( nextLine and @_indentSpacesOfLine(nextLine) isnt indentSpacesCount )
             line += ' ]' 
