@@ -334,8 +334,8 @@ class CSSS
         #   filter
         #     blur(2)
         #     grayscale(1)
-        if @doesLineBeginsWithAttribute(lineBefore) or isInListedValues
-          lines[i-1] += ' [' unless isInListedValues
+        if ( @doesLineBeginsWithAttribute(lineBefore) and nextLine and @_indentSpacesOfLine(nextLine) is indentSpacesCount ) or isInListedValues
+          lines[i-1] += ' [' if not isInListedValues 
           isInListedValues = /^\s+[\#a-zA-Z\_\-0-9\(\)\.]+/.test(line) or /^\s+\@/.test(line)
           whitespaces = Array(indentSpacesCount+1).join(' ')
           line        = whitespaces + @operateInline(line, {escape: false, enclose: true})
