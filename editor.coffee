@@ -1,11 +1,67 @@
-example = """
-@use 'MyEnvironment'
+###
+@myColor =
+  color white
 
+@myBlackColor = #333
+
+@font = 'k'
+
+@begin
+
+@page :first
+  color: green
+
+@media all
+
+body
+  background @myBlackColor
+  font: 12px / 2
+
+  textarea
+    @myColor
+    background #444
+    @myColor
+#    color rgba(200,200,200,0.3)
+
+###
+
+examples = []
+
+examples.push """
+@myColorSchema =
+  color #ddd
+  background #333
+  text-shadow 1px 1px 0 #111
+
+@padding = 2
+@borderWidth = 2px
+
+# @begin is optional if you use @media
+
+@begin
+
+@media all
+
+body
+  background #eee
+
+textarea
+  padding @padding * 10px
+  border
+    @borderWidth
+    solid
+    #ccc
+"""
+
+examples.push """
+@use 'mobile'
 # coffeescript comments can be used
 # but with a leading #[space] to avoid ambiguity with `#selector`
+//alternative: doubleslash comments
 
 # you can define methods
-@padding  = (pixels) -> pixels * 2
+@padding  = (pixels) ->
+  pixels * 2
 # variables with all kind of css units
 @smallerFontSize = 12em / 2
 @width    = 1200px * 0.8
@@ -26,12 +82,8 @@ example = """
   -o-border-radius @r * 4px
   border-radius @r[px]
 
-# define strings to save redundancy
-@mobileDevices = ->
-  @width = 700
-  "all and (max-width: \#{@width}px and (min-width: \#{@width*0.8}px), (min-width: 1151px)"
-
-@filter = (val) -> val * 20%
+@filter = (val) ->
+  val * 20%
 
 # optional, but recommend
 # start your stylesheet definition with a @begin
@@ -54,10 +106,9 @@ a
 tr.even
   background-color red
     .a
-      padding: @padding(2px) + 12px # `:` are optional
+      padding: @padding(12px) * 3px # `:` are optional
       font-weight @bold('bolder') - 100
 """
-
 
 $(document).ready ->
 
@@ -72,42 +123,63 @@ $(document).ready ->
 
   csss = new CSSS()
 
+
+  # testing out using your own enviornments
+  class mobile
+
+    darkColorSchema: ->
+      o =
+        'color': '#eee'
+        'background': '#444'
+        'text-shadow': '1px 1px 0px #000'
+
+    mobileDevices: -> 'screen and (max-device-width: 480px)'
+
+  csss.use mobile
+
   lastUse = stash.get 'lastUse'
   lastUse ?= timestamp()
 
-  beautifyCSS = true
-  $('#BeautifyCSS').prop('checked', beautifyCSS)
-  $('#BeautifyCSS').on 'change', ->
-    beautifyCSS = $(this).prop('checked')
-    stash.set 'BeautifyCSS', beautifyCSS
-    # renew
-    parse(true)
-  
-  syntaxHighlighting = stash.get 'SyntaxHighlighting'
-  syntaxHighlighting ?= true
-  $('#SyntaxHighlighting').prop('checked', syntaxHighlighting)
-  $('#SyntaxHighlighting').on 'change', ->
-    syntaxHighlighting = $(this).prop('checked')
-    stash.set 'SyntaxHighlighting', syntaxHighlighting
-    # renew
-    parse(true)
+  options =
+    BeautifyCSS: true
+    SyntaxHighlighting: true
+    ApplyOnDocument: false
+
+  $options = $('#BeautifyCSS, #SyntaxHighlighting, #ApplyOnDocument')
+  $options.each ->
+    id = $(this).attr('id')
+    $o = $(this)
+    options[id] = stash.get(id) if stash.get(id)?
+    $o.prop('checked', options[id])
+    $o.on 'change', ->
+      options[id] = $o.prop('checked')
+      stash.set id, options[id]
+      # renew
+      parse(true)
 
   if ( timestamp() - lastUse ) > 3600
     # use default code
-    # exampleCode = example
     exampleCode = ''
   else
     # load stashed input
-    exampleCode = if stash.get('input') then stash.get('input') else example
+    exampleCode = if stash.get('input') then stash.get('input') else examples[0]
 
-  $('#LoadExample').on 'click', ->
-    $in.text(example)
+  $exampleSelect = $('#LoadExample')
+  
+  for i in [0...examples.length]
+    $exampleSelect.append("<option value=\"#{i}\"># #{i}</option>")
+
+  $('#LoadExample').on 'change', ->
+    $in.text(examples[$(this).val()])
+    parse(true)
+
   $('#ClearCode').on 'click', ->
-    $in.text('')
     stash.set 'input', ''
+    $in.text('')
+    clearFields()
+    #parse(true)
 
   $in.text(exampleCode)
-
 
   applyCssToDocument = (css) ->
     $('#AppliedCSS').remove()
@@ -124,19 +196,28 @@ $(document).ready ->
         return $error.removeClass('hidden')
     $error.addClass('hidden')
 
+  clearFields = ->
+    $coffee.html('')
+    $css.html('')
+    $trans.html('')
+
   parse = (force = false) ->
     lastUse = timestamp()
     return if force isnt true and stash.get('input')?.trim() is $in.val()?.trim() 
     error = []
     csss.error('')
+
+    clearFields()
+    
     try
       csss.parse $in.val()
     catch e
-      error.push(new Error('Parsing Error'))
-      console.error e
+      firstLineNumber = e.location?.first_line or null
+      firstLine = csss.source.split('\n')?[firstLineNumber]?.trim() if firstLineNumber
+      error.push(new Error("Parsing Error #{if firstLineNumber then "@line #{firstLineNumber}: `#{firstLine}" else ""}"))
       error.push(e)
 
-    if syntaxHighlighting 
+    if options.SyntaxHighlighting 
       $trans.html hljs.highlight('coffeescript', csss.source).value
     else
       $trans.text csss.source
@@ -144,15 +225,15 @@ $(document).ready ->
     try
       csss.eval()
       css = csss.css()      
-      css = cssbeautify(css, indent: '  ') if beautifyCSS
-      applyCssToDocument(css)
-      if syntaxHighlighting
+      css = cssbeautify(css, indent: '  ') if options.BeautifyCSS
+      applyCssToDocument(css) if options.ApplyOnDocument
+      if options.SyntaxHighlighting
         $css.html  hljs.highlight('css', css).value
       else
         $css.text(css)
 
       coffeescript = csss.coffeescript || csss.declarationPart + csss.source
-      if syntaxHighlighting
+      if options.SyntaxHighlighting
         $coffee.html hljs.highlight('coffeescript', coffeescript).value
       else
         $coffee.text(coffeescript)
@@ -162,24 +243,15 @@ $(document).ready ->
       console.error e
       error.push(e)
 
-    # $css.text csss.css()
-
     # store input
     stash.set('input', $in.val())
     if csss.error()
       $coffee.html('') # no output if error
       error.push(csss.error())
-      console.error(csss.error())
+      console.error csss.error()
     displayError(error)
 
   parse(true)
-
-  # setInterval ->
-  #   parse()
-  # , 2000
-
-  
-  #cssbeautify(style, options);
 
   $collapsableContainer = $('.textarea, #options')
 
@@ -197,6 +269,3 @@ $(document).ready ->
     key = e.keyCode
     allowedKey = [ 13, 38, 40 ] #37 is <-
     parse() if allowedKey.indexOf(key) isnt -1
-
-
-
