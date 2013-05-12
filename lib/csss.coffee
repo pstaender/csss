@@ -2,6 +2,17 @@ throw 'CoffeeScript is needed' unless CoffeeScript?
 
 #TODO: lineBefore
 
+class CSSValue
+
+  value: ''
+  unit: null
+  @returnWithUnit: true
+
+  constructor: (@value, @unit) ->
+  valueOf: -> @value
+  toString: ->
+    if @unit then @value + @unit else @value
+
 class DocumentStyle
 
   _import: []
@@ -9,6 +20,7 @@ class DocumentStyle
   _levels: []
   eval: null
   _environments: {}
+  __cssvalue__: CSSValue
 
   # non public / protected
 
@@ -170,8 +182,9 @@ class CSSS
     s?.replace /\'/g, "\\'"
 
   operateInline: (s, options = {}) ->
-    {onlyIfOperatorsExists, enclose, escape} = options
-    escape ?= false  
+    {onlyIfOperatorsExists, enclose, escape, withUnit} = options
+    escape   ?= false
+    withUnit ?= false
     # no enclosement if we have an @access here, removed
     if s
       # remove trailing whitespaces
@@ -194,7 +207,10 @@ class CSSS
 
         # @r[px] -> @r + 1px
         escape = enclose = false
-        s = s.replace(@pattern.variableWithUnit(), "$1 + '$2'")
+        unit = s.match(/\[(in|cm|mm|em|ex|pt|pc|px|s|\%)\]/i)[1]
+        # strip unit
+        s = s.split("[#{unit}]").join('')+" , '#{unit}'"
+        #s = s.replace(@pattern.variableWithUnit(), "$1 + '$2'")
 
       # TODO: with or with whitespaces wraped? ` ' + $1..$3 +' `
       # enclose?, only if no operator are found
@@ -221,9 +237,13 @@ class CSSS
       if unit
         # remove unit from string
         # and enclose in brackets
-        s = "( #{s.split(unit).join('')} + '#{unit}' )"
+        
+        # js type casting did not work out:
+        # s = "( #{s.split(unit).join('')} + '#{unit}' )"
+        s = "( new @__cssvalue__( #{s.split(unit).join('')} , '#{unit}' )#{if withUnit then '.toString()' else ''} )"
       else
-        s = "( #{s.split(unit).join('')} )"
+        # s = "( #{s.split(unit).join('')} )"
+        s = "( new @__cssvalue__( #{s.split(unit).join('')} )#{if withUnit then '.toString()' else ''} )"
     else
       s = ''
     s
@@ -397,6 +417,7 @@ class CSSS
     if value# do we have a value here?
       # if not in '' we try to cast a value
       unless /^\'.*\'$/.test(value)
+        options.withUnit = true
         value = @operateInline(value, options)#, enclose: true)
         value = value.replace(/\+\'\)$/, ')')
         value = @parseInlineArguments(value)
