@@ -118,6 +118,8 @@ class CSSS
   seperateDeclarations: true # TODO: make that obsolete
 
   attributesTypes: 'filter|animation|animation-name|animation-duration|animation-timing-function|animation-delay|animation-iteration-count|animation-direction|animation-play-state|background|background-attachment|background-color|background-image|background-position|background-repeat|background-clip|background-origin|background-size|border|border-bottom|border-bottom-color|border-bottom-style|border-bottom-width|border-color|border-left|border-left-color|border-left-style|border-left-width|border-right|border-right-color|border-right-style|border-right-width|border-style|border-top|border-top-color|border-top-style|border-top-width|border-width|outline|outline-color|outline-style|outline-width|border-bottom-left-radius|border-bottom-right-radius|border-image|border-image-outset|border-image-repeat|border-image-slice|border-image-source|border-image-width|border-radius|border-top-left-radius|border-top-right-radius|box-decoration-break|box-shadow|overflow-x|overflow-y|overflow-style|rotation|rotation-point|color-profile|opacity|rendering-intent|bookmark-label|bookmark-level|bookmark-target|float-offset|hyphenate-after|hyphenate-before|hyphenate-character|hyphenate-lines|hyphenate-resource|hyphens|image-resolution|marks|string-set|height|max-height|max-width|min-height|min-width|width|box-align|box-direction|box-flex|box-flex-group|box-lines|box-ordinal-group|box-orient|box-pack|font|font-family|font-size|font-style|font-variant|font-weight|@font-face|font-size-adjust|font-stretch|content|counter-increment|counter-reset|quotes|crop|move-to|page-policy|grid-columns|grid-rows|target|target-name|target-new|target-position|alignment-adjust|alignment-baseline|baseline-shift|dominant-baseline|drop-initial-after-adjust|drop-initial-after-align|drop-initial-before-adjust|drop-initial-before-align|drop-initial-size|drop-initial-value|inline-box-align|line-stacking|line-stacking-ruby|line-stacking-shift|line-stacking-strategy|text-height|list-style|list-style-image|list-style-position|list-style-type|margin|margin-bottom|margin-left|margin-right|margin-top|marquee-direction|marquee-play-count|marquee-speed|marquee-style|column-count|column-fill|column-gap|column-rule|column-rule-color|column-rule-style|column-rule-width|column-span|column-width|columns|padding|padding-bottom|padding-left|padding-right|padding-top|fit|fit-position|image-orientation|page|size|bottom|clear|clip|cursor|display|float|left|overflow|position|right|top|visibility|z-index|orphans|page-break-after|page-break-before|page-break-inside|widows|ruby-align|ruby-overhang|ruby-position|ruby-span|mark|mark-after|mark-before|phonemes|rest|rest-after|rest-before|voice-balance|voice-duration|voice-pitch|voice-pitch-range|voice-rate|voice-stress|voice-volume|border-collapse|border-spacing|caption-side|empty-cells|table-layout|color|direction|letter-spacing|line-height|text-align|text-decoration|text-indent|text-transform|unicode-bidi|vertical-align|white-space|word-spacing|hanging-punctuation|punctuation-trim|text-align-last|text-justify|text-outline|text-overflow|text-shadow|text-wrap|word-break|word-wrap|2transform|transform-origin|transform-style|perspective|perspective-origin|backface-visibility|transition|transition-property|transition-duration|transition-timing-function|transition-delay|appearance|box-sizing|icon|nav-down|nav-index|nav-left|nav-right|nav-up|outline-offset|resize'
+  allAttributeTypes: ->
+    "\\s+(\\-moz\\-|\\-ms\\-|mso\\-|\\-khtml\\-|\\-webkit\\-|\\-o\\-){0,1}(#{@attributesTypes.split('-').join('\\-')}){1}"
 
   pattern:
     isInlineOperation: /\s+([a-zA-Z0-9\(]+[\(\)\%\/\*\+\-\.\s]*)+\s*$/
@@ -139,6 +141,7 @@ class CSSS
       #return /\s(\#[a-z0-9]{3,6})\s*/g
       /\s(\#[a-z0-9]{3,6}|AliceBlue|AntiqueWhite|Aqua|Aquamarine|Azure|Beige|Bisque|Black|BlanchedAlmond|Blue|BlueViolet|Brown|BurlyWood|CadetBlue|Chartreuse|Chocolate|Coral|CornflowerBlue|Cornsilk|Crimson|Cyan|DarkBlue|DarkCyan|DarkGoldenRod|DarkGray|DarkGreen|DarkKhaki|DarkMagenta|DarkOliveGreen|Darkorange|DarkOrchid|DarkRed|DarkSalmon|DarkSeaGreen|DarkSlateBlue|DarkSlateGray|DarkTurquoise|DarkViolet|DeepPink|DeepSkyBlue|DimGray|DimGrey|DodgerBlue|FireBrick|FloralWhite|ForestGreen|Fuchsia|Gainsboro|GhostWhite|Gold|GoldenRod|Gray|Green|GreenYellow|HoneyDew|HotPink|IndianRed|Indigo|Ivory|Khaki|Lavender|LavenderBlush|LawnGreen|LemonChiffon|LightBlue|LightCoral|LightCyan|LightGoldenRodYellow|LightGray|LightGreen|LightPink|LightSalmon|LightSeaGreen|LightSkyBlue|LightSlateGray|LightSteelBlue|LightYellow|Lime|LimeGreen|Linen|Magenta|Maroon|MediumAquaMarine|MediumBlue|MediumOrchid|MediumPurple|MediumSeaGreen|MediumSlateBlue|MediumSpringGreen|MediumTurquoise|MediumVioletRed|MidnightBlue|MintCream|MistyRose|Moccasin|NavajoWhite|Navy|OldLace|Olive|OliveDrab|Orange|OrangeRed|Orchid|PaleGoldenRod|PaleGreen|PaleTurquoise|PaleVioletRed|PapayaWhip|PeachPuff|Peru|Pink|Plum|PowderBlue|Purple|Red|RosyBrown|RoyalBlue|SaddleBrown|Salmon|SandyBrown|SeaGreen|SeaShell|Sienna|Silver|SkyBlue|SlateBlue|SlateGray|Snow|SpringGreen|SteelBlue|Tan|Teal|Thistle|Tomato|Turquoise|Violet|Wheat|White|WhiteSmoke|Yellow|YellowGreen)\s*/ig
     variableWithUnit: -> /^(\@[a-zA-Z\_]+)\[(in|cm|mm|em|ex|pt|pc|px|s|\%)\]/g
+
 
   constructor: (@original = null) ->
     @context = new DocumentStyle
@@ -306,10 +309,12 @@ class CSSS
       regex = @pattern.doesLineBeginWithAttribute
     else
       # generate pattern
-      regexString = @attributesTypes.split('-').join('\\-')#.replace(/([a-z\-]+)/g, '($1)')
-      regexString = "^\\s+(\\-moz\\-|\\-ms\\-|mso\\-|\\-khtml\\-|\\-webkit\\-|\\-o\\-){0,1}(#{regexString}){1}([\\s\\:]{1}.*)*$"
-      regex = @pattern.doesLineBeginWithAttribute = new RegExp(regexString)
+      regexString = "^#{@allAttributeTypes()}([\\s\\:]{1}.*)*$"
+      regex = @pattern.doesLineBeginWithAttribute = new RegExp(regexString, 'i')
     regex.test(line)
+
+  doesLineHaveOnlyAttribute: (line) ->
+    new RegExp("^#{@allAttributeTypes()}\\:*\\s*$", 'i').test(line)
 
   renameHyphenFunctionName: (line, replaceHyphenWith = '_') ->
     # replace function names
@@ -356,7 +361,8 @@ class CSSS
         #     blur(2)
         #     grayscale(1)
         if ( @doesLineBeginsWithAttribute(lineBefore) and nextLine and @_indentSpacesOfLine(nextLine) is indentSpacesCount ) or isInListedValues
-          lines[i-1] += ' [' if not isInListedValues 
+          lines[i-1] += ' [' if not isInListedValues and @doesLineHaveOnlyAttribute(lineBefore) 
+          # console.log @doesLineHaveOnlyAttribute(lineBefore)
           isInListedValues = /^\s+[\#a-zA-Z\_\-0-9\(\)\.]+/.test(line) or /^\s+\@/.test(line)
           whitespaces = Array(indentSpacesCount+1).join(' ')
           line        = whitespaces + @operateInline(line, {escape: false, enclose: true, withUnit: true})
@@ -392,7 +398,7 @@ class CSSS
     @original = s if s
     if @original
       # remove comments,  starting with # ...
-      # TODO: better solution
+      @original += '\n'
       @original = @original.replace(@pattern.comments(),'\n').replace(/\n{3,}/g, '\n\n')
       # seperate declaration and stylesheet part
       # for better parsing (will be obsolete in future with better parsin)
@@ -444,13 +450,9 @@ class CSSS
 
   compile: ->
     @declarationPart = null
-    pre = ''
-    try
-      @javascript = CoffeeScript.compile(pre+@source)
-      @coffeescript = pre+'\n\n  '+@source.split('\n').join('\n  ')+'\n\n'
-    catch e
-      @error(e)
-      @source
+    @javascript = CoffeeScript.compile(@source)
+    @coffeescript = '\n\n  '+@source.split('\n').join('\n  ')+'\n\n'
+    @source
 
   eval: (context) ->
     @createContext() unless @context? 
