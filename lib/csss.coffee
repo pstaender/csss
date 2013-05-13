@@ -46,7 +46,7 @@ class DocumentStyle
 
   object_to_css: (o) ->
     return '' if not o? or typeof o isnt 'object'
-    parts = for attribute of o
+    parts = for attribute of o      
       # we only escape on content attribute, or are there maybe more?
       escape = if attribute is 'content' then "'" else ''
       values = if o[attribute]?.constructor is Array then o[attribute].join(' ') else o[attribute]
@@ -69,6 +69,7 @@ class DocumentStyle
 
   add: ->
     args = Array.prototype.slice.call(arguments)
+    # (2)
     @_levels.push(args)
 
   addLine: (line, addTrailingSemicolon) ->
@@ -164,7 +165,7 @@ class CSSS
           whiteSpaces ?= line.match(/^(\s+)/)?[1] || ''
           if css.length is 0
             # begin
-            l = whiteSpaces + "o =\n"
+            l = whiteSpaces + "o = \n"
             # inc whitespace
             whiteSpaces += '  '
             whiteSpacesCount = currentWhiteSpacesCount = whiteSpacesCount + 2
@@ -361,7 +362,10 @@ class CSSS
           # console.log @doesLineHaveOnlyAttribute(lineBefore)
           isInListedValues = /^\s+[\#a-zA-Z\_\-0-9\(\)\.]+/.test(line) or /^\s+\@/.test(line)
           whitespaces = Array(indentSpacesCount+1).join(' ')
-          line        = whitespaces + @operateInline(line, {escape: false, enclose: true, withUnit: true})
+          # TODO: enclose = true ?! ->
+          # not enclose if we have @methodOrVariable()
+          # enclose: (!/^\s*@[a-z\_\-0-9]+(\(.*?\))*\s*$/.test(line))
+          line        = whitespaces + @operateInline(line, {escape: false, enclose: false, withUnit: true})
           lines[i] = line
           if not nextLine or ( nextLine and @_indentSpacesOfLine(nextLine) isnt indentSpacesCount )
             line += ' ]' 
