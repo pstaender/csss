@@ -223,7 +223,6 @@ $(document).ready ->
       $trans.text csss.source
 
     try
-      csss.eval()
       css = csss.css()      
       css = cssbeautify(css, indent: '  ') if options.BeautifyCSS
       applyCssToDocument(css) if options.ApplyOnDocument
