@@ -366,11 +366,11 @@ class CSSS
           # enclose: (!/^\s*@[a-z\_\-0-9]+(\(.*?\))*\s*$/.test(line))
           line     = whitespaces + @operateInline(line, {escape: false, enclose: (!/^\s*@[a-z\_\-0-9]+(\(.*?\))*\s*$/.test(line)), withUnit: true})
           lines[i] = line
-          if not nextLine or ( nextLine and @_indentSpacesOfLine(nextLine) isnt indentSpacesCount )
-            line += ' ]' 
-            console.log isInListedValues
-            isInListedValues = false
-        else
+        if typeof nextLine isnt 'string' or ( @_indentSpacesOfLine(nextLine) < indentSpacesCount )
+          line     = whitespaces + @operateInline(line, {escape: false, enclose: (!/^\s*@[a-z\_\-0-9]+(\(.*?\))*\s*$/.test(line)), withUnit: true})
+          line += ' ]'
+          isInListedValues = false
+        unless isInListedValues
           # functions, like `@pad('5px')`
           line = line.replace /^(\s+)(\@[a-zA-Z]+\(.*\))/g, '\n$1$2'
           # many selectors, like `.a, i[t="ok"], #sidebar p:first-line, ul li:nth-child(3)`
