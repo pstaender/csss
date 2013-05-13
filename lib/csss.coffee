@@ -451,7 +451,7 @@ class CSSS
     @coffeescript = '\n\n  '+@source.split('\n').join('\n  ')+'\n\n'
     @source
 
-  eval: (context) ->
+  eval: ->
     @createContext() unless @context? 
     if @context
       if window
@@ -490,6 +490,8 @@ class CSSS
     @_error?.message || @_error || null
 
   css: (cssString = '', o = null) ->
+
+    @eval()
 
     levels = {}
 
