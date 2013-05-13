@@ -359,7 +359,6 @@ class CSSS
         #     grayscale(1)
         if ( @doesLineBeginsWithAttribute(lineBefore) and nextLine and @_indentSpacesOfLine(nextLine) is indentSpacesCount ) or isInListedValues
           lines[i-1] += ' [' if not isInListedValues and @doesLineHaveOnlyAttribute(lineBefore) 
-          # console.log @doesLineHaveOnlyAttribute(lineBefore)
           isInListedValues = /^\s+[\#a-zA-Z\_\-0-9\(\)\.]+/.test(line) or /^\s+\@/.test(line)
           whitespaces = Array(indentSpacesCount+1).join(' ')
           # TODO: enclose = true ?! ->
@@ -519,15 +518,17 @@ class CSSS
         level            = Math.floor section[1].length / 2
         values           = DocumentStyle::object_to_css(section[2])
         isReference      = selectorString[0] is '&'
+        isNormalSelector = /^[\.\#\:]{1}/.test(selectorString.trim())
 
         if section.length > 2
           # we have mixins here
           # apply on the current selector
           for i in [3...section.length]
             DocumentStyle::__extend__(section[2], section[i])
-
-        if level < levelBefore and isReference and levels?[level-1]
-          selectorString = levels[level-1].trim() + selectorString.trim().substring(1)# || ''
+        
+        if level < levelBefore and levels?[level-1]
+          before = levels[level-1]?.trim() or ''
+          selectorString = levels[level-1].trim() + ( if isReference then selectorString.trim().substring(1) else if isNormalSelector then selectorString else ' '+selectorString )
         else if level >= levelBefore
           if isReference
             # we have a reference here, merge together
@@ -540,7 +541,7 @@ class CSSS
           else
             before = levels[level-1]?.trim()
             selectorString = selectorString.trim()
-            selectorString = ' ' + selectorString unless /^[\.\#\:]{1}/.test(selectorString.trim())
+            selectorString = ' ' + selectorString unless isNormalSelector
             selectorString =  ( before || '' ) + ' ' + selectorString.trim()
 
         cssString += "\n#{selectorString} #{DocumentStyle::object_to_css(section[2])}" if values
