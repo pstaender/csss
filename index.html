@@ -1,142 +1,77 @@
 <html>
 <head>
   <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
-  <script src="coffee-script.js"></script>
-  <script src="stash.js"></script>
-  <script src="cssbeautify.js"></script>
-  <script src="//raw.github.com/pstaender/csss/master/lib/csss.js"></script>
-  <script src="editor.coffee" type="text/coffeescript"></script>
-  <!-- highlighter -->
-  <link rel="stylesheet" href="highlightjs/styles/tomorrow.css">
-  <script src="highlightjs/highlight.pack.js"></script>
-  <!-- /highlighter -->
+  <script src="//raw.github.com/pstaender/csss/master/other/cssseditor.js"></script>
+  <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700' rel='stylesheet' type='text/css'>
+  <link href='http://fonts.googleapis.com/css?family=Arvo:400,700' rel='stylesheet' type='text/css'>
+  <script type="text/javascript">
+    $(document).ready(function(){
+      new csssEditor({ selector: $('body'), stash: true }, function(){
+        // do some stuff after editor is loaded and ready to use
+      });
+    });
+  </script>
   <style type="text/css">
-    body {
-      background: #eee;
-      color: #222;
-      font-family: 'Lucida', Arial;
-    }
-
-    textarea, .textarea {
-      height: 94%;
-      border: 0px;
-      padding: 0.5%;
-      font-family: 'Menlo';
-      margin: 1%;
-      width: 30%;
-      color: #000;
-      -webkit-transition: width 0.2s;
-      box-shadow: 1px 1px 1px #ddd;
-      float: left;
-    }
-    textarea {
-      background: #fff;
-      float: none;
-      width: 100%;
-      height: 100%;
-      margin: 0;
-    }
-    .textarea.collapsed {
-      width: 1em;
-      background: #fff;
-      overflow-x: hidden;
-      overflow-y: hidden; 
-    }
-    .textarea.collapsed code {
-      display: none;
-    }
-    #error {
-      background: #ffa1a1;
-      border-radius: 2px;
-      color: #fff;
-      /*width: 20%;*/
-      position: fixed;
-      /*bottom: 0.2em;*/
-      padding: 0.5em 1em;
-      /*left: 40%;*/
-      opacity: 1;
-      -webkit-transition: opacity 0.5s;
-      right: 0;
-      bottom: 0px;
-      font-size: 0.8em;
-      width: 100%;
-      text-align: center;
-    }
-    #error.hidden {
+    body > article {
       opacity: 0;
-    }
-    #options {
-      position: fixed;
-      background: #999;
-      height: 100%;
-      top: 0;
-      right: 0;
-      font-size: 0.8em;
-      padding: 1em;
-      width: 200px;
-      box-shadow: -2px 0 5px rgba(0,0,0,0.2);
-      color: #fff;
-      text-shadow: 1px 1px 0 #666;
-      z-index: 100;
-    }
-    #options * {
-      opacity: 1;
-    }
-    #options.collapsed {
-      width: 0px;
-    }
-    #options.collapsed * {
-      opacity: 0;
-    }
-    .textarea {
-      padding: 0;
-      /*float: left;*/
-      height: 94%;
-    }
-    .textarea pre, .textarea pre code {
-      margin: 0;
-      height: 99%;
-    }
-    .textarea pre code {
-      font-family: 'Menlo';
-      font-size: 11px;
-      overflow: scroll;
-    }
-    #options li {
-      list-style: none;
-      margin: 0;
-      margin-bottom: 1em;
+      -webkit-transform: opacity 2s;
+      -ms-transform: opacity 2s;
+      transform: opacity 2s;
     }
   </style>
 </head>
 <body>
-  <div class="textarea">
-    <textarea id="in" placeholder="CSSS"></textarea>
-  </div>
-  <div class="textarea" id="transscript"><pre><code></code></pre></div>
-  <div class="textarea" id="coffeescript"><pre><code></code></pre></div>
-  <div class="textarea" id="out"><pre><code></code></pre></div>
+  <a href="https://github.com/pstaender/csss"><img style="position: absolute; top: 0; left: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_left_darkblue_121621.png" alt="Fork me on GitHub"></a>
+  <article>
+    <section>
+      <h1>csss</h1>
+      <h2><i>C</i>offee<i>S</i>cribted<i>S</i>tyle<i>S</i>heets</h2>
+      <section>
+        <h3>What can it do?</h3>
+        <p>Compose stylesheets as usual - but without brackets and (semi)colons if you like</p>
+        <code>
+          <pre>
+body
+  background #eee
+  a
+    color grey
+    font-weight bolder
+    &:hover
+      color black
+          </pre>
+        </code>
+        <p>Use variables - and you can append units if you like</p>
+        <code>
+          <pre>
+@myColor = #eee
+@myPaddingSize = 5px
 
-  <div id="error" class="hidden"></div>
-  <div id="options">
-    <ul>
-      <li>
-        <label for="SyntaxHighlighting">syntax highlighting</label>
-        <input type="checkbox" id="SyntaxHighlighting" />
-      </li>
-      <li>
-        <label for="SyntaxHighlighting">beautify css</label>
-        <input type="checkbox" id="BeautifyCSS" />
-      </li>
-      <li>
-        <label for="ApplyOnDocument">apply on doc</label>
-        <input type="checkbox" id="ApplyOnDocument" checked="checked" />
-      </li>
-      <li>
-        <!-- <button id="LoadExample">load example</button> -->
-        <select id="LoadExample"></select>
-        <button id="ClearCode">clear code</button>
-      </li>
-  </div>
+@begin
+
+body
+  background @myColor
+  padding @myPaddingSize * 2px
+          </pre>
+        </code>
+        <p>Use mixins</p>
+        <code>
+          <pre>
+@transition = (@a) ->
+  transition @a 0.2s
+  -webkit-transition @a 0.2s
+  -moz-transition @a 0.2s
+
+@media all
+
+a:hover
+  @transition('color')  
+          </pre>
+        </code>
+        <h3>Curious?</h3>
+        <p>Try out yourself live on this page ➙</p>
+        <p>Our checkout the <a href="http://pstaender.github.io/csss/editor.html">csss-editor</a> to see what you actually get…</p>
+      </section>
+    </section>
+  </article>
 </body>
 </html>
