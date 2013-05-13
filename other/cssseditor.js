@@ -46,7 +46,7 @@
   
   csssEditor.prototype.applyContainer = function() {
     var css = "\
-    #csssEditor_container { position: fixed; top: 0; right: 0; width: 20em; height: 100%; box-shadow: -2px 0 5px rgba(0,0,0,0.2); }\
+    #csssEditor_container { position: fixed; top: 0; right: 0; width: 20em; height: 100%; box-shadow: -2px 0 5px rgba(0,0,0,0.2); z-index: 100; }\
     #csssEditor_container.collapsed { width: 1em; }\
     #csssEditor_container.collapsed #csssEditor_input { color: transparent; }\
     #csssEditor_input { width: 100%; height: 100%; border: 1px solid #ccc; padding: 10px; font-family: 'Menlo', 'Consolas', Courier; }\

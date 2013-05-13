@@ -366,7 +366,7 @@ class CSSS
           # enclose: (!/^\s*@[a-z\_\-0-9]+(\(.*?\))*\s*$/.test(line))
           line     = whitespaces + @operateInline(line, {escape: false, enclose: (!/^\s*@[a-z\_\-0-9]+(\(.*?\))*\s*$/.test(line)), withUnit: true})
           lines[i] = line
-        if typeof nextLine isnt 'string' or ( @_indentSpacesOfLine(nextLine) < indentSpacesCount )
+        if isInListedValues and ( ( typeof nextLine isnt 'string' ) or ( @_indentSpacesOfLine(nextLine) < indentSpacesCount ) )
           line     = whitespaces + @operateInline(line, {escape: false, enclose: (!/^\s*@[a-z\_\-0-9]+(\(.*?\))*\s*$/.test(line)), withUnit: true})
           line += ' ]'
           isInListedValues = false

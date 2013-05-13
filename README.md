@@ -8,7 +8,7 @@
 * produces css as output
 * proof of concept (using coffeescript as middleware)
 
-[Checkout the editor for playing around and testing sass/csss code](http://pstaender.github.io/csss/)
+[Checkout the editor for playing around and testing sass/csss code](http://pstaender.github.io/csss/editor.html)
 
 Comments, improvements, thoughts and issues are always welcome :)
 
