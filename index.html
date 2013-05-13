@@ -1,13 +1,22 @@
 <html>
 <head>
   <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+  <script src="//rezitech.github.com/stash/stash.min.js"></script>
   <script src="//raw.github.com/pstaender/csss/master/other/cssseditor.js"></script>
   <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700' rel='stylesheet' type='text/css'>
   <link href='http://fonts.googleapis.com/css?family=Arvo:400,700' rel='stylesheet' type='text/css'>
   <script type="text/javascript">
     $(document).ready(function(){
+      var last_refresh = stash.get('last_refresh');
+      var timestamp = Math.round(new Date().getTime() / 1000);
+      var useDefaultCsss = (last_refresh > (timestamp - 1800)) || (!stash.get('csss_editor_input'));
+      stash.set('last_refresh', timestamp);
       new csssEditor({ selector: $('body'), stash: true }, function(){
         // do some stuff after editor is loaded and ready to use
+        if (useDefaultCsss) {
+          $('#csssEditor_input').text("@center = ->\n  text-align center\n  margin 0 auto\n\n@typography = ->\n  color #555\n  text-shadow 1px 1px 0px #fff\n  font-weight normal\n  margin-left 30%\n\n@transition = (@a) ->\n  transition: @a 0.2s\n  -webkit-transition: @a 0.2s\n  -moz-transition: @a 0.2s\n  cursor pointer\n\n@media all\n\nhtml *\n  opacity: 1\n  margin: 0\n  padding: 0\n\nbody\n  background #eee\n  color #333\n  font-family 'Source Sans Pro', Arial\n\n  a\n    color black\n    text-decoration none\n    font-weight 400\n\n  > article\n    opacity: 1\n\narticle\n \n  section > h1\n    font-size 3em\n    color #999\n    text-shadow 1px 1px 0 #fff\n    font-family 'Arvo', serif\n    font-size 24px * 3\n    @center()\n  \n    &:hover\n      color: #222\n      @transition('color')\n \n  h1, h2, h3\n    margin-bottom: 0.6em\n \n  > section > h2\n    color #aaa\n    font-weight normal\n    @center()\n\n    &:hover\n      color: #222\n      @transition('color')\n    \n    i\n      font-style normal\n      font-weight 700\n      text-transform lowercase\n      color #aaa\n      text-shadow 0px 1px 0px rgba(255,255,255,1)\n\n  > section > section\n    padding-top 1em\n    \n    h3\n      @typography()\n      font-size 2em\n      margin-top: 0.4em\n    p\n      margin-top: 2em\n      @typography()\n  \n  code\n    display block\n    background rgba(0,0,0,0.5)\n    box-shadow inset 0 0 70px rgba(0,0,0,0.3)\n    color #fff\n    width 30em\n    padding 0.5em 2em\n    border 1px solid #fff\n    text-shadow 1px 1px 0 rgba(0,0,0,0.5)\n    margin 0 auto\n    @transition('background')\n    padding-top 1em\n  code:hover\n    background #000\n\np\n  margin 0\n  margin-bottom 3em\n\n");
+          $('#csssEditor_input').keyup();
+        }
       });
     });
   </script>
