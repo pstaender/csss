@@ -349,35 +349,32 @@ class CSSS
       # attributes
       # color: 'black'
       else if lineBeginsWithAttribute
+        onlyAttribute = @doesLineHaveOnlyAttribute(line)
         line = @parseAttributeLine(line, { indent: line.match(/^\s+/)[0], escape: true }) # we have an escape for e.g. font: 'Lucida', Arial
-      else
-        line = @parseInlineArguments(line)
-        # s.th. like
-        # div#Container
-        #   filter
-        #     blur(2)
-        #     grayscale(1)
-        if ( @doesLineBeginsWithAttribute(lineBefore) and nextLine and @_indentSpacesOfLine(nextLine) is indentSpacesCount ) or isInListedValues
-          lines[i-1] += ' [' if not isInListedValues and @doesLineHaveOnlyAttribute(lineBefore) 
-          isInListedValues = ( /^\s+[\#a-zA-Z\_\-0-9\(\)\.]+/.test(line) or /^\s+\@/.test(line) ) and @doesLineHaveOnlyAttribute(lineBefore) 
-          whitespaces = Array(indentSpacesCount+1).join(' ')
-          # TODO: enclose = true ?! ->
-          # not enclose if we have @methodOrVariable()
-          # enclose: (!/^\s*@[a-z\_\-0-9]+(\(.*?\))*\s*$/.test(line))
-          line     = whitespaces + @operateInline(line, {escape: false, enclose: (!/^\s*@[a-z\_\-0-9]+(\(.*?\))*\s*$/.test(line)), withUnit: true})
-          lines[i] = line
-        if isInListedValues and ( ( typeof nextLine isnt 'string' ) or ( @_indentSpacesOfLine(nextLine) < indentSpacesCount ) )
-          line     = whitespaces + @operateInline(line, {escape: false, enclose: (!/^\s*@[a-z\_\-0-9]+(\(.*?\))*\s*$/.test(line)), withUnit: true})
+        if onlyAttribute
+          # s.th. like
+          # div#Container
+          #   filter
+          #     blur(2)
+          #     grayscale(1)
+          line += ' ['
+          isInListedValues = true
+      else if isInListedValues# and nextLine and (@_indentSpacesOfLine(nextLine) isnt indentSpacesCount )
+        whitespaces = Array(indentSpacesCount+1).join(' ')
+        line = whitespaces + @operateInline(line, { whitespaces})#, { indent: line.match(/^\s+/)[0], escape: true })
+        if not nextLine or (@_indentSpacesOfLine(nextLine) < indentSpacesCount )
           line += ' ]'
           isInListedValues = false
-        unless isInListedValues
-          # functions, like `@pad('5px')`
-          line = line.replace /^(\s+)(\@[a-zA-Z]+\(.*\))/g, '\n$1$2'
-          # many selectors, like `.a, i[t="ok"], #sidebar p:first-line, ul li:nth-child(3)`
-          line = line.replace /^(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)$/, "\n@add '$2', '$1', "
-          # one selector, like `body.imprint`
-          line = line.replace /\n(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)(\s*)$/, "\n@add '$2', '$1', $4"
-          lastSelectorLine = null
+      else
+        # functions, like `@pad('5px')`
+        line = line.replace /^(\s+)(\@[a-zA-Z]+\(.*\))/g, '\n$1$2'
+        # many selectors, like `.a, i[t="ok"], #sidebar p:first-line, ul li:nth-child(3)`
+        line = line.replace /^(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)$/, "\n@add '$2', '$1', "
+        # one selector, like `body.imprint`
+        line = line.replace /\n(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)(\s*)$/, "\n@add '$2', '$1', $4"
+        lastSelectorLine = null
+        
+
       # check line before called a function/css query like @page
       if lastLineWithSelector and lineBeginsWithAttribute and /^\s*(@[a-z\_\-]+)([^\,]\s*)*\s*$/i.test(lastLineWithSelector)
         matches = lastLineWithSelector.match /^(\s*)(@[a-z\_\-]+)([^a-z\_\,].*)*\s*$/i
