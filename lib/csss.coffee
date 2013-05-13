@@ -1,7 +1,3 @@
-throw 'CoffeeScript is needed' unless CoffeeScript?
-
-#TODO: lineBefore
-
 class CSSValue
 
   value: ''
@@ -450,6 +446,7 @@ class CSSS
 
   compile: ->
     @declarationPart = null
+    throw 'CoffeeScript is needed' unless CoffeeScript?
     @javascript = CoffeeScript.compile(@source)
     @coffeescript = '\n\n  '+@source.split('\n').join('\n  ')+'\n\n'
     @source
