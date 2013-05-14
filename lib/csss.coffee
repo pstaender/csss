@@ -67,26 +67,26 @@ class DocumentStyle
     else
       throw new Error("Couldn't find/use '#{yourClassName}'")
 
-  add: ->
+  __add__: ->
     args = Array.prototype.slice.call(arguments)
     # (2)
     @_levels.push(args)
 
-  addLine: (line, addTrailingSemicolon) ->
-    @add if addTrailingSemicolon then line.replace /\;+\s*$/, ';' else line
+  __addLine__: (line, addTrailingSemicolon) ->
+    @__add__ if addTrailingSemicolon then line.replace /\;+\s*$/, ';' else line
 
   __add_environment__: (yourClass) ->
     if typeof yourClass is 'function'
       className = yourClass.toString()?.split('\n')?[0].replace(/^function\s(.+?)\(.*/, '$1')
       @_environments[className] = yourClass
 
-  charset: (charset) -> @addLine("@charset '#{charset}';") if charset
+  charset: (charset) -> @__addLine__("@charset '#{charset}';") if charset
   
   page: (selector, values) ->    
     {selector, values} = DocumentStyle::seperate_selector_and_values(selector, values)
     # values = if values then values else ''
     values = @object_to_css(values) if values
-    @addLine("@page #{selector} #{values}") if selector
+    @__addLine__("@page #{selector} #{values}") if selector
 
   seperate_selector_and_values: (selector,values) ->
     if typeof selector is 'object'
@@ -96,10 +96,10 @@ class DocumentStyle
       { selector, values }
   # @document, @keyframes, @viewport, @namespace, @support
   font_face: (query) ->
-    @add '@font-face', query
+    @__add__ '@font-face', query
 
   media: (query) ->
-    @add '@media', query
+    @__add__ '@media', query
 
 class CSSS
 
@@ -369,9 +369,9 @@ class CSSS
         # functions, like `@pad('5px')`
         line = line.replace /^(\s+)(\@[a-zA-Z]+\(.*\))/g, '\n$1$2'
         # many selectors, like `.a, i[t="ok"], #sidebar p:first-line, ul li:nth-child(3)`
-        line = line.replace /^(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)$/, "\n@add '$2', '$1', "
+        line = line.replace /^(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)$/, "\n@__add__ '$2', '$1', "
         # one selector, like `body.imprint`
-        line = line.replace /\n(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)(\s*)$/, "\n@add '$2', '$1', $4"
+        line = line.replace /\n(\s*)([a-zA-Z\.\#\&\>\:\*]+((?!\:\s).)*)(\s*)$/, "\n@__add__ '$2', '$1', $4"
         lastSelectorLine = null
         
 
@@ -389,7 +389,7 @@ class CSSS
     # if we have @add of selector with no properties: (TODO: find a better way instead of using regex/replace)
     # tr:hover
     #   a ...
-    @styletext = @styletext.replace /(\n@add\s.+?)(\,\s[\n])(@add\s)/g, '$1\n$3'
+    @styletext = @styletext.replace /(\n@__add__\s.+?)(\,\s[\n])(@__add__\s)/g, '$1\n$3'
 
   parse: (s) ->    
     @original = s if s
@@ -491,8 +491,6 @@ class CSSS
     @_error?.message || @_error || null
 
   css: (cssString = '', o = null) ->
-
-    @eval()
 
     levels = {}
 
