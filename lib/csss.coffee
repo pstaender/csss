@@ -453,7 +453,7 @@ class CSSS
     @source
 
   eval: ->
-    @createContext() unless @context? 
+    @createContext() unless @context?
     if @context
       if window
         # TODO: find a better way than that, figure out with sandbox
@@ -498,8 +498,12 @@ class CSSS
     selectorBefore = ''
 
     mediaQuery = null
+   
+    @eval()
 
-    for section in @evaluated?._levels
+    return '' unless @evaluated?._levels?.length > 0
+
+    for section in @evaluated._levels
       if section.length is 1
         # we have just a line
         cssString += section[0]
