@@ -127,7 +127,6 @@
       StashJS: 'http://rezitech.github.com/stash/stash.min.js',
       CSSBeautify: 'http://www.senchalabs.org/cssbeautify/cssbeautify.js',
       CSSS: 'http://raw.github.com/pstaender/csss/master/lib/csss.js'
-      // CSSS: '../lib/csss.js'
     };
 
     var filesCount = 0;//Object.keys(files).length;
