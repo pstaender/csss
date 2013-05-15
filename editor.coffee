@@ -1,30 +1,3 @@
-###
-@myColor =
-  color white
-
-@myBlackColor = #333
-
-@font = 'k'
-
-@begin
-
-@page :first
-  color: green
-
-@media all
-
-body
-  background @myBlackColor
-  font: 12px / 2
-
-  textarea
-    @myColor
-    background #444
-    @myColor
-#    color rgba(200,200,200,0.3)
-
-###
-
 examples = []
 
 examples.push """
@@ -223,7 +196,7 @@ $(document).ready ->
       $trans.text csss.source
 
     try
-      css = csss.css()      
+      css = csss.css()
       css = cssbeautify(css, indent: '  ') if options.BeautifyCSS
       applyCssToDocument(css) if options.ApplyOnDocument
       if options.SyntaxHighlighting
