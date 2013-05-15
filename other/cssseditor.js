@@ -41,7 +41,6 @@
     try {
       csss = self.csss = new CSSS();
       csss.parse(input);
-      csss.eval();
       var css = csss.css();
       self.applyCssToDocument(css);
       if (typeof self.done === 'function')

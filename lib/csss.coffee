@@ -490,14 +490,18 @@ class CSSS
     @_error = e if e?
     @_error?.message || @_error || null
 
-  css: (cssString = '', o = null) ->
+  css: () ->
 
     levels = {}
+
+    cssString = ''
 
     levelBefore = null
     selectorBefore = ''
 
     mediaQuery = null
+
+    @evaluated = null
    
     @eval()
 
